@@ -1,0 +1,8 @@
+# Виртуальное окружение
+backend/venv/
+
+# Локальные настройки Django
+backend/*.pyc
+backend/__pycache__/
+backend/db.sqlite3
+backend/.env
