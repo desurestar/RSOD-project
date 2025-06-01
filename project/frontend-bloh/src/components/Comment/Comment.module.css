@@ -1,0 +1,148 @@
+.commentSection {
+	margin-top: 3rem;
+	background-color: var(--color-card-bg);
+	border-radius: 16px;
+	padding: 2rem;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+	font-size: 1.3rem;
+	color: var(--color-primary);
+	margin-bottom: 1.5rem;
+}
+
+.newCommentForm {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: 2rem;
+}
+
+.newCommentForm textarea {
+	padding: 0.75rem;
+	border-radius: 8px;
+	border: 1px solid #ccc;
+	resize: vertical;
+}
+
+.newCommentForm button {
+	align-self: flex-end;
+	padding: 0.5rem 1rem;
+	background-color: var(--color-primary);
+	color: white;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.commentItem {
+	margin-bottom: 1.5rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid #eee;
+}
+
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: left;
+	gap: 0.75rem;
+	margin-bottom: 0.25rem;
+}
+
+.avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.headerInfo {
+	flex: 1;
+}
+
+.content {
+	text-align: left;
+	padding-left: 3.2rem;
+	margin: 0.5rem 0;
+	color: var(--color-text);
+	line-height: 1.4;
+}
+
+.footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 1.5rem;
+	font-size: 0.85rem;
+}
+
+.date {
+	color: #999;
+}
+
+.replyBtn {
+	background: none;
+	border: none;
+	color: var(--color-primary);
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.replyForm {
+	margin-top: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.replyForm textarea {
+	width: 100%;
+	padding: 0.75rem;
+	border: 1px solid #ccc;
+	border-radius: 12px;
+	resize: vertical;
+	font-family: 'Piazzolla', serif;
+	font-size: 1rem;
+	line-height: 1.5;
+	color: var(--color-text);
+	background-color: var(--color-card-bg);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+	transition: border-color 0.2s ease-in-out;
+}
+
+.replyForm textarea:focus {
+	border-color: var(--color-primary);
+	outline: none;
+}
+
+.replyForm button {
+	align-self: flex-end;
+	background-color: var(--color-primary);
+	color: white;
+	padding: 0.4rem 1rem;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+.replies {
+	margin-top: 1rem;
+	padding-left: 2rem;
+	border-left: 2px solid #eee;
+}
+
+.showAllBtn {
+	background: none;
+	border: none;
+	color: var(--color-primary);
+	cursor: pointer;
+	font-size: 0.85rem;
+	margin-top: 0.5rem;
+}
+
+.username {
+	color: var(--color-primary);
+	font-weight: 600;
+	font-size: 1rem;
+}

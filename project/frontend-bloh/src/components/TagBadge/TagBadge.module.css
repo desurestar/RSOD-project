@@ -1,0 +1,17 @@
+.tagBadge {
+	display: inline-block;
+	padding: 4px 10px;
+	margin: 0 6px 6px 0;
+	border-radius: 24px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #083b10;
+	background-color: #e0f2e9;
+	transition: background-color 0.2s ease;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.tagBadge:hover {
+	background-color: #ccead8;
+}

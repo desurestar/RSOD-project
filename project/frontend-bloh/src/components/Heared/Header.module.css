@@ -1,0 +1,163 @@
+.header {
+	background-color: var(--color-bg);
+	color: var(--color-primary);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	padding: 1rem 0;
+	font-family: var(--font-main);
+}
+
+.container {
+	width: 100%;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.logo {
+	font-size: 1.6rem;
+	font-weight: 700;
+	text-decoration: none;
+	color: var(--color-primary);
+}
+
+.nav {
+	display: flex;
+	gap: 1.5rem;
+}
+
+.nav a {
+	text-decoration: none;
+	color: var(--color-primary);
+	font-weight: 500;
+	transition: color 0.2s ease;
+}
+
+.nav a:hover {
+	color: var(--color-button-hover);
+}
+
+.searchForm {
+	display: flex;
+	align-items: center;
+	margin-left: 1rem;
+	flex-grow: 1;
+}
+
+.searchInput {
+	font-family: var(--font-main);
+	padding: 0.4rem 0.8rem;
+	border: 1px solid var(--color-primary);
+	border-radius: 8px;
+	font-size: 0.9rem;
+	outline: none;
+	transition: border-color 0.2s ease;
+	width: 100%;
+	min-width: 300px;
+	box-sizing: border-box;
+}
+
+.searchInput:focus {
+	border-color: var(--color-button-hover);
+}
+
+.auth {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.authBtn {
+	background-color: transparent;
+	border: 1px solid var(--color-primary);
+	padding: 0.4rem 0.8rem;
+	border-radius: 6px;
+	font-weight: 500;
+	color: var(--color-primary);
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.authBtn:hover {
+	background-color: var(--color-primary);
+	color: #fff;
+}
+
+.profile {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.avatar {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 2px solid var(--color-primary);
+}
+
+.username {
+	font-weight: 500;
+	color: var(--color-primary);
+}
+
+.logout {
+	background: none;
+	border: none;
+	color: #a00;
+	cursor: pointer;
+	font-size: 0.9rem;
+	font-weight: 500;
+	transition: color 0.2s ease;
+}
+
+.logout:hover {
+	color: red;
+}
+
+.profileWrapper {
+	position: relative;
+	cursor: pointer;
+}
+
+.dropdown {
+	position: absolute;
+	top: 120%;
+	right: 0;
+	background-color: white;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	border-radius: 8px;
+	overflow: hidden;
+	z-index: 100;
+	min-width: 160px;
+	display: flex;
+	flex-direction: column;
+	font-size: 0.95rem;
+}
+
+.dropdown a,
+.dropdown button {
+	padding: 0.75rem 1rem;
+	text-align: left;
+	background: none;
+	border: none;
+	outline: none;
+	color: var(--color-primary);
+	text-decoration: none;
+	transition: background-color 0.2s ease;
+	cursor: pointer;
+	width: 100%;
+}
+
+.dropdown a:hover {
+	background-color: #f4f4f4;
+}
+
+.dropdown button:hover {
+	background-color: #f4f4f4;
+	color: red;
+}

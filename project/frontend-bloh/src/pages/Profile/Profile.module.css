@@ -1,0 +1,151 @@
+.profilePage {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	padding: 2rem;
+	background-color: var(--color-bg);
+	min-height: 80vh;
+}
+
+.card {
+	background-color: var(--color-card-bg);
+	border-radius: 2rem;
+	padding: 2rem;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+	text-align: center;
+	max-width: 440px;
+	width: 100%;
+	transition: transform 0.2s ease;
+}
+
+.card:hover {
+	transform: translateY(-4px);
+}
+
+.avatar {
+	width: 120px;
+	height: 120px;
+	border-radius: 50%;
+	object-fit: cover;
+	margin-bottom: 1rem;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+	border: 3px solid var(--color-primary);
+}
+
+.name {
+	color: var(--color-primary);
+	font-size: 1.75rem;
+	font-weight: 600;
+	margin-bottom: 0.3rem;
+}
+
+.email {
+	font-size: 1rem;
+	color: #666;
+	margin-bottom: 1.2rem;
+}
+
+.editBtn {
+	background-color: var(--color-button);
+	color: var(--color-primary);
+	border: none;
+	padding: 0.7rem 1.4rem;
+	border-radius: 10px;
+	cursor: pointer;
+	font-weight: 600;
+	transition: background-color 0.2s ease;
+	margin-bottom: 1.5rem;
+}
+
+.editBtn:hover {
+	background-color: var(--color-button-hover);
+}
+
+.stats {
+	display: flex;
+	justify-content: space-around;
+	gap: 1.5rem;
+	font-size: 1rem;
+	color: var(--color-text);
+}
+
+.stats div {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.stats strong {
+	font-size: 1.4rem;
+	color: var(--color-primary);
+}
+
+.stats {
+	display: flex;
+	justify-content: space-around;
+	gap: 2rem;
+	margin-top: 2rem;
+	width: 100%;
+	max-width: 600px;
+}
+
+.stats div {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	cursor: pointer;
+	padding: 0.8rem 1rem;
+	border-radius: 12px;
+	transition: background-color 0.2s ease;
+}
+
+.stats div:hover {
+	background-color: rgba(8, 59, 16, 0.05);
+}
+
+.stats span {
+	color: #666;
+	font-size: 0.9rem;
+}
+
+.stats strong {
+	font-size: 1.4rem;
+	color: var(--color-primary);
+	margin-top: 0.2rem;
+}
+
+.tabContent {
+	margin-top: 2rem;
+	background-color: var(--color-card-bg);
+	padding: 1.5rem;
+	border-radius: 16px;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+	width: 100%;
+	max-width: 600px;
+}
+
+.tabTitle {
+	color: var(--color-primary);
+	font-size: 1.3rem;
+	margin-bottom: 1rem;
+	text-align: center;
+}
+
+.tabList {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.tabList li {
+	padding: 0.5rem 0;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	text-align: center;
+}
+
+.tabList li p {
+	font-size: 0.85rem;
+	color: #555;
+	margin-top: 0.3rem;
+}

@@ -1,0 +1,36 @@
+.footer {
+	background-color: var(--color-bg);
+	color: var(--color-primary-text);
+	padding: 2rem;
+	border-top: 1px solid rgba(0, 0, 0, 0.05);
+	font-family: var(--font-main);
+}
+
+.inner {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 2rem;
+}
+
+.description {
+	flex: 1 1 250px;
+}
+
+.links {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.contact {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.socials {
+	display: flex;
+	gap: 0.75rem;
+	font-size: 1.5rem;
+}

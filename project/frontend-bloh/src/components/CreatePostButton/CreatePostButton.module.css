@@ -1,0 +1,28 @@
+.createPostBtn {
+	width: 100%;
+	max-width: 100%;
+	margin-bottom: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	font-size: 1.1rem;
+	padding: 0.7rem 1.2rem;
+	background-color: var(--color-primary);
+	color: #fff;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: bold;
+	transition: background-color 0.3s;
+	box-shadow: 0 2px 8px rgba(43, 127, 255, 0.08);
+}
+
+.createPostBtn:hover {
+	background-color: var(--color-button-hover);
+}
+
+.icon {
+	display: flex;
+	align-items: center;
+}

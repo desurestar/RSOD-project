@@ -1,0 +1,130 @@
+.sidebar {
+	background-color: var(--color-card-bg);
+	padding: 1rem;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	min-height: 100px;
+	max-height: 100vh;
+	overflow-y: auto;
+	max-width: 25rem;
+	width: 100%;
+}
+
+.filterTitle {
+	font-size: 1.2rem;
+	margin-bottom: 1rem;
+	color: var(--color-primary);
+}
+
+.filterGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+.filterLabel {
+	font-weight: 600;
+	color: var(--color-primary);
+	margin-bottom: 0.25rem;
+}
+
+.filterInput,
+.filterSelect {
+	padding: 0.5rem;
+	border: 1px solid var(--color-primary);
+	border-radius: 4px;
+	font-size: 1rem;
+	outline: none;
+}
+
+.dropdown {
+	position: relative;
+	cursor: pointer;
+}
+
+.dropdownToggle {
+	padding: 0.5rem;
+	border: 1px solid var(--color-primary);
+	border-radius: 4px;
+	background-color: #fff;
+	color: var(--color-primary);
+	font-size: 1rem;
+	text-align: center;
+	user-select: none;
+	width: 100%;
+}
+
+.dropdownMenu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	width: 100%;
+	background-color: #fff;
+	border: 1px solid var(--color-primary);
+	border-radius: 4px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	z-index: 10;
+	max-height: 200px;
+	overflow-y: auto;
+	padding: 0;
+	list-style: none;
+}
+
+.dropdownItem {
+	padding: 0.6rem 0.8rem;
+	cursor: pointer;
+	border-radius: 4px;
+	transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dropdownItem:hover,
+.selectedItem:hover {
+	background-color: var(--color-primary);
+	color: #fff;
+}
+
+.selectedItem {
+	background-color: var(--color-primary-light);
+	color: var(--color-primary);
+	font-weight: bold;
+}
+
+.selectedTags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 1rem;
+	width: 100%;
+	max-width: 100%;
+}
+
+.tagBadge {
+	padding: 0.4rem 0.7rem;
+	border-radius: 32px;
+	font-size: 0.85rem;
+	color: #fff;
+	background-color: var(--color-primary);
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	transition: background-color 0.3s ease;
+}
+
+.tagBadge:hover {
+	background-color: var(--color-button-hover);
+}
+
+.removeTagBtn {
+	cursor: pointer;
+	color: #fff;
+	font-weight: bold;
+	transition: color 0.3s ease;
+	background: none;
+	border: none;
+	font-size: 0.85rem;
+}
+
+.removeTagBtn:hover {
+	color: #ddd;
+}

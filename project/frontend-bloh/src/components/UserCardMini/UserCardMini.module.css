@@ -1,0 +1,62 @@
+.card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: var(--color-card-bg);
+	border-radius: 1rem;
+	padding: 1rem;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+	transition: transform 0.2s;
+	gap: 1rem;
+}
+
+.card:hover {
+	transform: translateY(-2px);
+}
+
+.userLink {
+	display: flex;
+	align-items: center;
+	text-decoration: none;
+	color: inherit;
+	gap: 1rem;
+	flex: 1;
+}
+
+.avatar {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 2px solid var(--color-primary);
+}
+
+.info {
+	display: flex;
+	flex-direction: column;
+}
+
+.name {
+	font-weight: 600;
+	color: var(--color-primary);
+}
+
+.username {
+	font-size: 0.9rem;
+	opacity: 0.7;
+}
+
+.unsubscribeButton {
+	background-color: var(--color-button);
+	color: var(--color-primary);
+	border: none;
+	border-radius: 0.5rem;
+	padding: 0.4rem 0.8rem;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+	font-family: var(--font-main);
+}
+
+.unsubscribeButton:hover {
+	background-color: var(--color-button-hover);
+}

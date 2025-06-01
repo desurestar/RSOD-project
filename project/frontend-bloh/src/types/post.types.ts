@@ -1,6 +1,3 @@
-// src/types/post.types.ts
-
-// Автор поста
 export interface Author {
 	id: number
 	username: string
@@ -10,21 +7,19 @@ export interface Author {
 	isFollowedByCurrentUser?: boolean
 }
 
-// Тег (например: "Салат", "Каша")
 export interface Tag {
 	id: number
 	name: string
 	slug: string
+	color?: string
 }
 
-// Ингредиент поста (если пост — это рецепт)
 export interface Ingredient {
 	id: number
 	name: string
 	quantity: string
 }
 
-// Шаг приготовления
 export interface RecipeStep {
 	id: number
 	order: number
@@ -32,16 +27,14 @@ export interface RecipeStep {
 	image?: string
 }
 
-// Комментарий к посту
 export interface Comment {
 	id: number
 	author: Author
 	content: string
 	createdAt: string
-	parentCommentId?: number // для вложенных комментариев
+	parentCommentId?: number
 }
 
-// Сам пост
 export interface Post {
 	id: number
 	title: string
@@ -60,4 +53,32 @@ export interface Post {
 	commentsCount: number
 	isLikedByCurrentUser?: boolean
 	isSavedByCurrentUser?: boolean
+
+	viewsCount: number
+	calories?: number
+	cookingTime?: number
+}
+
+
+export interface PostCreateRequest {
+  title: string
+  tags: number[]
+  ingredients: { name: string; amount: string }[]
+  steps: { description: string; image?: File }[]
+  content: string
+  cooking_time_minutes: number
+  calories: number
+  preview?: File
+}
+
+export interface PostResponse {
+  id: number
+  title: string
+  content: string
+  created_at: string
+  author: {
+    id: number
+    username: string
+    display_name: string
+  }
 }
