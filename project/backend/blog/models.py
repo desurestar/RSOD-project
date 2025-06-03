@@ -19,22 +19,31 @@ class Ingredient(models.Model):
   name = models.CharField(max_length=255)
   quantity = models.CharField(max_length=100)
   
-  def __setattr__(self):
+  def __str__(self):
     return self.name
   
 class RecipeStep(models.Model):
   order = models.PositiveIntegerField()
   description = models.TextField()
-  image = models.URLField(blank=True)
+  image = models.ImageField(upload_to='posts/steps/', blank=True, null=True)
   
   def __str__(self):
 			return f'Step {self.order}'
 
 class Post(models.Model):
+    POST_TYPE_CHOICES = [
+        ('recipe', 'Recipe'),
+        ('article', 'Article'),
+    ]
+    post_type = models.CharField(
+        max_length=10,
+        choices=POST_TYPE_CHOICES,
+        default='recipe'
+    )
     title = models.CharField(max_length=255)
     excerpt = models.TextField()
     content = models.TextField()
-    cover_image = models.URLField()
+    cover_image = models.ImageField(upload_to='posts/covers/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

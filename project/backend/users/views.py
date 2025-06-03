@@ -1,32 +1,38 @@
-from django.contrib.auth import get_user_model
-from rest_framework import generics
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from .serializers import CustomUserSerializer
+from rest_framework import generics, permissions
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import CustomTokenObtainPairSerializer
+from .serializers import UserSerializer, UserRegisterSerializer, CustomTokenObtainPairSerializer
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 
-
-User = get_user_model()
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_profile(request):
+    user = request.user
+    data = {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'display_name': user.display_name,
+        'avatar_url': user.avatar_url,
+        'role': user.role,
+        'subscribers': [sub.id for sub in user.subscribers.all()],
+        'subscriptions': [sub.id for sub in user.subscriptions.all()],
+        'liked_posts': [post.id for post in user.liked_posts.all()],
+        'posts': [post.id for post in user.posts.all()],
+    }
+    return Response(data)
 
 class RegisterView(generics.CreateAPIView):
-  serializer_class = CustomUserSerializer
-  
-  def post(self, request, *args, **kwargs):
-    serializer = self.get_serializer(data=request.data)
-    if serializer.is_valid():
-      user = serializer.save()
-      return Response({"id": user.id, "username": user.username}, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer_class = UserRegisterSerializer
+    permission_classes = [permissions.AllowAny]
 
-class CurrentUserView(APIView):
-  permission_classes = [IsAuthenticated]
-  
-  def get(self, request):
-    serializer = CustomUserSerializer(request.user)
-    return Response(serializer.data)
-  
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer

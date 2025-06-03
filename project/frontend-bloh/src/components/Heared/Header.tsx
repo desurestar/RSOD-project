@@ -1,136 +1,186 @@
-import React, { useEffect, useRef, useState } from 'react'
-import Modal from 'react-modal'
-import { Link, useNavigate } from 'react-router-dom'
-import { AuthModals } from '../../components/Modals/AuthModals/AuthModals'
-import { useGetMeQuery } from '../../services/authApi'
-import { useAuthStore } from '../../store/authStore'
-import { Logo } from '../Logo/Logo'
-import styles from './Header.module.css'
-
-Modal.setAppElement('#root')
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthModals } from '../Modals/AuthModals/AuthModals';
+import { Logo } from '../Logo/Logo';
+import styles from './Header.module.css';
+import { useAuthStore } from '../../stores/authStore';
 
 export const Header: React.FC = () => {
-	const { user, setUser, logout } = useAuthStore()
-	const [isMenuOpen, setIsMenuOpen] = useState(false)
-	const [isLoginOpen, setIsLoginOpen] = useState(false)
-	const [isRegisterOpen, setIsRegisterOpen] = useState(false)
-	const [searchQuery, setSearchQuery] = useState('')
-	const menuRef = useRef<HTMLDivElement>(null)
-	const navigate = useNavigate()
+  const {
+    user,
+    isAuthenticated,
+    loading: authLoading,
+    logout,
+    fetchProfile,
+  } = useAuthStore();
+  
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [searchQuery, setSearchQuery] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-	// Запрос текущего пользователя
-	const { data: currentUser, isSuccess } = useGetMeQuery(undefined, {
-		skip: !!user, // чтобы не делать повторный запрос
-	})
+  // Загрузка профиля при монтировании
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isAuthenticated, fetchProfile]);
 
-	// Если успешно получили пользователя с бэка — сохраняем в стор
-	useEffect(() => {
-		if (isSuccess && currentUser) {
-			setUser(currentUser)
-		}
-	}, [isSuccess, currentUser, setUser])
+  // Закрытие меню при клике вне его области
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-				setIsMenuOpen(false)
-			}
-		}
-		document.addEventListener('mousedown', handleClickOutside)
-		return () => {
-			document.removeEventListener('mousedown', handleClickOutside)
-		}
-	}, [])
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+    setIsMenuOpen(false);
+  };
 
-	const handleLogout = () => {
-		logout()
-		navigate('/')
-	}
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
 
-	const handlerSearch = (event: React.FormEvent) => {
-		event.preventDefault()
-		navigate(`/search?query=${searchQuery}`)
-	}
+  const openAuthModal = (mode: 'login' | 'register') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
 
-	return (
-		<header className={styles.header}>
-			<div className={styles.container}>
-				<Link to='/' className={styles.logo}>
-					<Logo />
-				</Link>
+  const closeAuthModal = () => {
+    setAuthModalOpen(false);
+  };
 
-				<nav className={styles.nav}>
-					<Link to='/'>Рецепты</Link>
-					<Link to='/article'>Статьи</Link>
-					{user && <Link to='/subscriptions'>Подписки</Link>}
-					{user?.role === 'admin' && <Link to='/admin'>Админка</Link>}
-				</nav>
+  const switchAuthMode = () => {
+    setAuthMode(prev => (prev === 'login' ? 'register' : 'login'));
+  };
 
-				<div className={styles.auth}>
-					<form className={styles.searchFrom} onSubmit={handlerSearch}>
-						<input
-							type='text'
-							className={styles.searchInput}
-							placeholder='Найти...'
-							value={searchQuery}
-							onChange={e => setSearchQuery(e.target.value)}
-						/>
-					</form>
+  return (
+    <header className={styles.header}>
+      <div className={styles.container}>
+        <Link to="/" className={styles.logo}>
+          <Logo />
+        </Link>
 
-					{!user ? (
-						<>
-							<button
-								className={styles.authBtn}
-								onClick={() => setIsLoginOpen(true)}
-							>
-								Вход
-							</button>
-							<button
-								className={styles.authBtn}
-								onClick={() => setIsRegisterOpen(true)}
-							>
-								Регистрация
-							</button>
-						</>
-					) : (
-						<div className={styles.profileWrapper} ref={menuRef}>
-							<div
-								className={styles.profile}
-								onClick={() => setIsMenuOpen(prev => !prev)}
-							>
-								<img
-									src={user.avatarUrl}
-									alt='avatar'
-									className={styles.avatar}
-								/>
-								<span className={styles.username}>
-									{user.displayName || user.username}
-									
-								</span>
-							</div>
-							{isMenuOpen && (
-								<div className={styles.dropdown}>
-									<Link to='/profile'>Профиль</Link>
-									<Link to='/subscriptions'>Подписки</Link>
-									<button onClick={handleLogout}>Выйти</button>
-								</div>
-							)}
-						</div>
-					)}
-				</div>
-			</div>
+        <nav className={styles.nav}>
+          <Link to="/recipes">Рецепты</Link>
+          <Link to="/articles">Статьи</Link>
+          {isAuthenticated && <Link to="/subscriptions">Подписки</Link>}
+          {user?.role === 'admin' && <Link to="/admin">Админка</Link>}
+        </nav>
 
-			{/* модалки авторизации */}
-			<AuthModals
-				isOpen={isLoginOpen}
-				onRequestClose={() => setIsLoginOpen(false)}
-				mode='login'
-			/>
-			<AuthModals
-				isOpen={isRegisterOpen}
-				onRequestClose={() => setIsRegisterOpen(false)}
-				mode='register'
-			/>
-		</header>
-	)
-}
+        <div className={styles.auth}>
+          <form className={styles.searchForm} onSubmit={handleSearch}>
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Найти..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className={styles.searchButton}>
+              <svg className={styles.searchIcon} viewBox="0 0 24 24">
+                <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+            </button>
+          </form>
+
+          {!isAuthenticated ? (
+            <div className={styles.authButtons}>
+              <button
+                className={`${styles.authBtn} ${styles.loginBtn}`}
+                onClick={() => openAuthModal('login')}
+                disabled={authLoading}
+              >
+                Вход
+              </button>
+              <button
+                className={`${styles.authBtn} ${styles.registerBtn}`}
+                onClick={() => openAuthModal('register')}
+                disabled={authLoading}
+              >
+                Регистрация
+              </button>
+            </div>
+          ) : (
+            <div className={styles.profileWrapper} ref={menuRef}>
+              <div
+                className={styles.profile}
+                onClick={() => setIsMenuOpen(prev => !prev)}
+                aria-expanded={isMenuOpen}
+                aria-haspopup="true"
+              >
+                <img
+                  src={user?.avatar_url || '/default-avatar.png'}
+                  alt={user?.display_name || user?.username || 'User'}
+                  className={styles.avatar}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/default-avatar.png';
+                  }}
+                />
+                <span className={styles.username}>
+                  {user?.display_name || user?.username}
+                </span>
+              </div>
+              
+              {isMenuOpen && (
+                <div className={styles.dropdown}>
+                  <Link 
+                    to={`/profile/${user?.username}`} 
+                    className={styles.dropdownItem}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Профиль
+                  </Link>
+                  <Link 
+                    to="/subscriptions" 
+                    className={styles.dropdownItem}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Подписки
+                  </Link>
+                  {user?.role === 'admin' && (
+                    <Link 
+                      to="/admin" 
+                      className={styles.dropdownItem}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Админ панель
+                    </Link>
+                  )}
+                  <button 
+                    className={styles.dropdownItem}
+                    onClick={handleLogout}
+                    disabled={authLoading}
+                  >
+                    Выйти
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <AuthModals
+        isOpen={authModalOpen}
+        onRequestClose={closeAuthModal}
+        mode={authMode}
+        onSwitchMode={switchAuthMode}
+      />
+    </header>
+  );
+};
