@@ -41,11 +41,24 @@ const SubscriptionsPage = lazy(() =>
 		default: module.SubscriptionsPage,
 	}))
 )
-const EditProfilePage = lazy(()=> import('./pages/EditProfilePage/EditProfilePage').then(module => ({
-  default: module.EditProfilePage
-})))
+const EditProfilePage = lazy(() =>
+	import('./pages/EditProfilePage/EditProfilePage').then(module => ({
+		default: module.EditProfilePage,
+	}))
+)
 
-// const CreatePostPage = lazy(() => import('./pages/CreatePostPage/CreatePostPage').then(module => ({ default: module.CreatePostPage })));
+const AdminPanel = lazy(() =>
+	import('./pages/AdminPanel/AdminPanel').then(module => ({
+		default: module.AdminPanel,
+	}))
+)
+
+const CreatePostPage = lazy(() =>
+	import('./pages/CreatePostPage/CreatePostPage').then(module => ({
+		default: module.CreatePostPage,
+	}))
+)
+
 const NotFoundPage = lazy(() =>
 	import('./pages/NotFoundPage/NotFoundPage').then(module => ({
 		default: module.NotFoundPage,
@@ -57,8 +70,17 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-	const { user } = useAuthStore()
-	return user ? <>{children}</> : <Navigate to='/' replace />
+	const { user, isAdmin } = useAuthStore()
+
+	if (!user) {
+		return <Navigate to='/' replace />
+	}
+
+	if (!isAdmin()) {
+		return <Navigate to='/profile' replace />
+	}
+
+	return <>{children}</>
 }
 
 function App() {
@@ -90,17 +112,29 @@ function App() {
 							}
 						/>
 
-						{/* <Route path="/create-post" element={
-              <ProtectedRoute>
-                <CreatePostPage />
-              </ProtectedRoute>
-            } /> */}
+						<Route
+							path='/create-post'
+							element={
+								<ProtectedRoute>
+									<CreatePostPage />
+								</ProtectedRoute>
+							}
+						/>
 
 						<Route
 							path='/profile/edit'
 							element={
 								<ProtectedRoute>
 									<EditProfilePage />
+								</ProtectedRoute>
+							}
+						/>
+
+						<Route
+							path='/admin'
+							element={
+								<ProtectedRoute>
+									<AdminPanel />
 								</ProtectedRoute>
 							}
 						/>

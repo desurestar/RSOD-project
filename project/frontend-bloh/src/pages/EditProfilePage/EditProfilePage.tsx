@@ -8,19 +8,18 @@ export const EditProfilePage = () => {
   const [formData, setFormData] = useState({
     display_name: '',
     email: '',
-    avatar: null as File | null
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const [error, setError] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // Заполняем форму данными пользователя при загрузке
   useEffect(() => {
     if (user) {
       setFormData({
         display_name: user.display_name || '',
         email: user.email,
-        avatar: null
       });
       setAvatarPreview(user.avatar_url || null);
     }
@@ -34,7 +33,7 @@ export const EditProfilePage = () => {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData(prev => ({ ...prev, avatar: file }));
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
@@ -49,21 +48,24 @@ export const EditProfilePage = () => {
     setError('');
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('display_name', formData.display_name);
-      formDataToSend.append('email', formData.email);
-      if (formData.avatar) {
-        formDataToSend.append('avatar', formData.avatar);
+      // 1. Сначала обновляем основные данные профиля
+      const updatedUser = await authAPI.updateProfile(formData);
+      updateUser(updatedUser);
+
+      // 2. Если есть новый аватар - обновляем его отдельным запросом
+      if (avatarFile) {
+        setAvatarLoading(true);
+        const userWithNewAvatar = await authAPI.updateAvatar(avatarFile);
+        updateUser(userWithNewAvatar);
       }
 
-      const updatedUser = await authAPI.updateProfile(formDataToSend);
-      updateUser(updatedUser);
       // Можно добавить уведомление об успешном сохранении
     } catch (err) {
       setError('Не удалось обновить профиль. Пожалуйста, попробуйте снова.');
       console.error('Profile update error:', err);
     } finally {
       setIsLoading(false);
+      setAvatarLoading(false);
     }
   };
 
@@ -71,12 +73,13 @@ export const EditProfilePage = () => {
     return <div className={styles.loading}>Загрузка данных пользователя...</div>;
   }
 
+  const isLoadingState = isLoading || avatarLoading;
+
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Редактирование профиля</h1>
       
       <form onSubmit={handleSubmit} className={styles.form}>
-        {/* Компонент загрузки аватара */}
         <div className={styles.avatarUpload}>
           <label className={styles.avatarLabel}>
             <input
@@ -84,6 +87,7 @@ export const EditProfilePage = () => {
               accept="image/*"
               onChange={handleAvatarChange}
               className={styles.avatarInput}
+              disabled={isLoadingState}
             />
             <div className={styles.avatarWrapper}>
               <img 
@@ -95,13 +99,16 @@ export const EditProfilePage = () => {
                 }}
               />
               <div className={styles.avatarOverlay}>
-                <span className={styles.avatarEditText}>Изменить</span>
+                {avatarLoading ? (
+                  <span className={styles.spinner}></span>
+                ) : (
+                  <span className={styles.avatarEditText}>Изменить</span>
+                )}
               </div>
             </div>
           </label>
         </div>
 
-        {/* Поле для имени */}
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Имя для отображения</label>
           <input
@@ -111,10 +118,10 @@ export const EditProfilePage = () => {
             onChange={handleChange}
             placeholder="Введите ваше имя"
             className={styles.input}
+            disabled={isLoadingState}
           />
         </div>
 
-        {/* Поле для email */}
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Email</label>
           <input
@@ -124,6 +131,7 @@ export const EditProfilePage = () => {
             onChange={handleChange}
             placeholder="Введите ваш email"
             className={styles.input}
+            disabled={isLoadingState}
           />
         </div>
 
@@ -133,9 +141,9 @@ export const EditProfilePage = () => {
           <button 
             type="submit" 
             className={`${styles.button} ${styles.primary}`}
-            disabled={isLoading}
+            disabled={isLoadingState}
           >
-            {isLoading ? (
+            {isLoadingState ? (
               <span className={styles.spinner}></span>
             ) : (
               'Сохранить изменения'

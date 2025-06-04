@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.validators import EmailValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
@@ -11,11 +12,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token['username'] = user.username
         token['avatar_url'] = user.avatar_url
+        token['role'] = user.role
+        token['is_admin'] = user.is_admin
         return token
 
 class UserRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'display_name']
@@ -23,6 +24,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
             'email': {'required': True}
         }
+
+    def validate(self, data):
+        if len(data['password']) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters long.")
+        return data
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -35,20 +41,26 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
+    is_admin = serializers.BooleanField(read_only=True)
     subscribers_count = serializers.IntegerField(read_only=True)
     subscriptions_count = serializers.IntegerField(read_only=True)
+    posts_count = serializers.IntegerField(read_only=True)
+    liked_posts_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'display_name',
-            'avatar_url', 'subscribers_count', 'subscriptions_count'
+            'id', 'username', 'email', 'display_name', 
+            'avatar_url', 'is_admin', 'role',
+            'subscribers_count', 'subscriptions_count',
+            'posts_count', 'liked_posts_count'
         ]
-        read_only_fields = ['id', 'username']
+        read_only_fields = ['id', 'username', 'is_admin']
 
     def get_avatar_url(self, obj):
+        request = self.context.get('request')
         if obj.avatar:
-            return self.context['request'].build_absolute_uri(obj.avatar.url)
+            return request.build_absolute_uri(obj.avatar.url)
         return None
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -59,11 +71,18 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['display_name', 'email']
+        fields = ['display_name', 'email', 'role']
         extra_kwargs = {
             'display_name': {'required': False, 'allow_blank': True},
-            'email': {'required': True}
+            'email': {'required': True},
+            'role': {'required': False}
         }
+
+    def validate_role(self, value):
+        request = self.context.get('request')
+        if request and not request.user.is_admin:
+            raise serializers.ValidationError("Only admin can change roles.")
+        return value    
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exclude(pk=self.instance.pk).exists():

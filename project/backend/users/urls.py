@@ -7,7 +7,9 @@ from .views import (
     UserAvatarUpdateView,
     UserFollowersView,
     UserFollowingView,
-    UserUnsubscribeView
+    UserUnsubscribeView,
+    UserListView,
+    UserRetrieveUpdateDestroyView
 )
 
 router = DefaultRouter()
@@ -20,4 +22,6 @@ urlpatterns = [
     path('users/<int:user_id>/followers/', UserFollowersView.as_view(), name='user-followers'),
     path('users/<int:user_id>/following/', UserFollowingView.as_view(), name='user-following'),
     path('users/<int:user_id>/unsubscribe/', UserUnsubscribeView.as_view(), name='user-unsubscribe'),
+    path('admin/users/', UserListView.as_view(), name='user-list'),
+    path('admin/users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
 ] + router.urls

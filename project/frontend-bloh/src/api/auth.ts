@@ -2,79 +2,77 @@ import api from './instance'
 import { Tokens, User } from './types'
 
 export const authAPI = {
-	login: async (credentials: {
-		username: string
-		password: string
-	}): Promise<Tokens> => {
-		const response = await api.post<Tokens>('auth/token/', credentials)
-		return response.data
-	},
+    login: async (credentials: { username: string; password: string }) => {
+        const response = await api.post<{ access: string; refresh: string }>('auth/token/', credentials)
+        return response.data
+    },
 
-	register: async (data: {
-		username: string
-		email: string
-		password: string
-		password2: string
-	}): Promise<Tokens> => {
-		const response = await api.post<Tokens>('auth/register/', data)
-		return response.data
-	},
+    register: async (data: { 
+        username: string; 
+        email: string; 
+        password: string 
+    }) => {
+        const response = await api.post<{ 
+            tokens: Tokens; 
+            user: User 
+        }>('auth/register/', data)
+        return response.data
+    },
 
-	getProfile: async (): Promise<User> => {
-		const response = await api.get<User>('auth/profile/')
-		return response.data
-	},
+    getProfile: async () => {
+        const response = await api.get<User>('auth/profile/')
+        return response.data
+    },
 
-	updateProfile: async (formData: FormData): Promise<User> => {
-		const response = await api.put<User>('auth/profile/', formData)
-		return response.data
-	},
+    updateProfile: async (data: Partial<User>) => {
+        const response = await api.patch<User>('auth/profile/', data)
+        return response.data
+    },
 
-	updateAvatar: async (avatarFile: File): Promise<User> => {
-		const formData = new FormData()
-		formData.append('avatar', avatarFile)
+    updateAvatar: async (avatarFile: File) => {
+        const formData = new FormData()
+        formData.append('avatar', avatarFile)
 
-		try {
-			const response = await api.patch<User>('auth/profile/avatar/', formData, {
-				headers: {
-					'Content-Type': 'multipart/form-data',
-				},
-			})
+        const response = await api.patch<User>('auth/profile/avatar/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        
+        if (response.data.avatar_url) {
+            response.data.avatar_url += `?t=${Date.now()}`
+        }
+        return response.data
+    },
 
-			// Добавляем timestamp для избежания кэширования
-			if (response.data.avatar_url) {
-				response.data.avatar_url += `?t=${Date.now()}`
-			}
+    refreshToken: async (refresh: string) => {
+        const response = await api.post<{ access: string }>('auth/token/refresh/', { refresh })
+        return response.data
+    },
 
-			return response.data
-		} catch (error) {
-			console.error('Avatar upload failed:', error)
-			throw error
-		}
-	},
+    getFollowers: async (userId: number) => {
+        const response = await api.get<User[]>(`auth/users/${userId}/followers/`)
+        return response.data
+    },
 
-	refreshToken: async (refresh: string): Promise<{ access: string }> => {
-		const response = await api.post<{ access: string }>('auth/token/refresh/', {
-			refresh,
-		})
-		return response.data
-	},
+    getFollowing: async (userId: number) => {
+        const response = await api.get<User[]>(`auth/users/${userId}/following/`)
+        return response.data
+    },
 
-	socialAuth: (provider: string) => {
-		window.location.href = `${import.meta.env.VITE_API_URL}/auth/${provider}/`
-	},
+    unsubscribe: async (userId: number) => {
+        await api.post(`auth/users/${userId}/unsubscribe/`)
+    },
 
-	getFollowers: async (userId: number): Promise<User[]> => {
-		const response = await api.get<User[]>(`auth/users/${userId}/followers/`)
-		return response.data
-	},
+    getAdminUsers: async () => {
+        const response = await api.get<User[]>('auth/admin/users/')
+        return response.data
+    },
 
-	getFollowing: async (userId: number): Promise<User[]> => {
-		const response = await api.get<User[]>(`auth/users/${userId}/following/`)
-		return response.data
-	},
+    updateAdminUser: async (userId: number, data: Partial<User>) => {
+        const response = await api.put<User>(`auth/admin/users/${userId}/`, data)
+        return response.data
+    },
 
-	unsubscribe: async (userId: number): Promise<void> => {
-		await api.post(`auth/users/${userId}/unsubscribe/`)
-	},
+    deleteAdminUser: async (userId: number) => {
+        await api.delete(`auth/admin/users/${userId}/`)
+    },
 }

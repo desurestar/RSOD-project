@@ -1,69 +1,117 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .container {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 1000px;
+  margin: 2rem auto;
   padding: 2rem;
-  background-color: var(--color-card-bg);
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  flex: 1;
 }
 
 .title {
-  text-align: center;
+  font-size: 2rem;
   margin-bottom: 2rem;
   color: var(--color-primary);
+  text-align: center;
+}
+
+.error {
+  color: #ff4444;
+  background-color: #ffeeee;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 2rem;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 3rem;
 }
 
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.formSection {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.formGroupRow {
-  display: flex;
-  gap: 1rem;
-}
-
-.formGroupRow > * {
-  flex: 1;
-}
-
-.formGroup label {
-  font-weight: 600;
+.sectionTitle {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
   color: var(--color-primary);
 }
 
-input[type="text"],
-input[type="number"],
-textarea,
-select {
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-family: var(--font-main);
   font-size: 1rem;
 }
 
-input[type="file"] {
+.textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  min-height: 150px;
+  resize: vertical;
+}
+
+.fileInput {
+  width: 100%;
   padding: 0.5rem 0;
 }
 
 .radioGroup {
   display: flex;
-  gap: 1rem;
+  gap: 2rem;
 }
 
-.radioGroup label {
+.radioLabel {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-weight: normal;
+  cursor: pointer;
+}
+
+.radioInput {
+  position: absolute;
+  opacity: 0;
+}
+
+.radioCustom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  position: relative;
+}
+
+.radioInput:checked + .radioCustom::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
 }
 
 .tagsContainer {
@@ -75,82 +123,99 @@ input[type="file"] {
 .tagItem {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  cursor: pointer;
 }
 
-.section {
+.tagCheckbox {
+  margin-right: 0.5rem;
+}
+
+.tagLabel {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.ingredientsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.ingredientItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stepItem {
   padding: 1.5rem;
   border: 1px solid #eee;
   border-radius: 8px;
-  background-color: white;
-}
-
-.section h3 {
-  margin-bottom: 1rem;
-  color: var(--color-primary);
-}
-
-.ingredientRow,
-.stepRow {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #eee;
-}
-
-.ingredientRow input {
-  flex: 1;
-}
-
-.stepRow {
-  flex-direction: column;
 }
 
 .stepImage {
-  margin-top: 0.5rem;
-}
-
-.addButton {
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
+  max-width: 100%;
+  height: auto;
+  margin-top: 1rem;
   border-radius: 4px;
-  cursor: pointer;
-  font-family: var(--font-main);
-  font-weight: 600;
-  margin-top: 0.5rem;
 }
 
-.removeButton {
-  background-color: #ff6b6b;
-  color: white;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
+.gridRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.submitSection {
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  margin-top: 2rem;
 }
 
 .submitButton {
-  background-color: var(--color-button);
-  color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: white;
   border: none;
   padding: 1rem 2rem;
   border-radius: 4px;
-  cursor: pointer;
-  font-family: var(--font-main);
   font-size: 1.1rem;
-  font-weight: 700;
-  margin-top: 1rem;
-  transition: background-color 0.3s;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .submitButton:hover {
-  background-color: var(--color-button-hover);
+  background-color: var(--color-primary-dark);
 }
+
+.submitButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+    margin: 1rem auto;
+  }
+
+  .formSection {
+    padding: 1.5rem;
+  }
+
+  .gridRow {
+    grid-template-columns: 1fr;
+  }
+}
+

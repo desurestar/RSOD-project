@@ -78,9 +78,9 @@ export const Header: React.FC = () => {
           <Link to="/">Рецепты</Link>
           <Link to="/articles">Статьи</Link>
           {isAuthenticated && <Link to="/subscriptions">Подписки</Link>}
-          {user?.role === 'admin' && <Link to="/admin">Админка</Link>}
+          {user?.is_admin && <Link to="/admin">Админка</Link>}
         </nav>
-
+    
         <div className={styles.auth}>
           <form className={styles.searchForm} onSubmit={handleSearch}>
             <input
