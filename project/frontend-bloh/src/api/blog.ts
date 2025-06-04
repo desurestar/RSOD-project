@@ -12,10 +12,10 @@ import {
 
 export const blogAPI = {
   // Posts
-  getPosts: async (): Promise<Post[]> => {
-    const response = await api.get<Post[]>('blog/posts/');
-    return response.data;
-  },
+  getPosts: async (params?: { author?: number; liked_by?: number }): Promise<Post[]> => {
+  const response = await api.get<Post[]>('blog/posts/', { params });
+  return response.data;
+},
   
   getPost: async (id: number): Promise<Post> => {
     const response = await api.get<Post>(`blog/posts/${id}/`);

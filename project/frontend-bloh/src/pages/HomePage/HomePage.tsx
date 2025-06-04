@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
 import { CreatePostButton } from '../../components/CreatePostButton/CreatePostButton'
 import { FilterSidebar } from '../../components/FilterSidebar/FilterSidebar'
-import { Footer } from '../../components/Footer/Footer'
-import { Header } from '../../components/Heared/Header'
 import { PostsFeed } from '../../components/PostsFeed/PostsFeed'
 import { mockPosts } from '../../mock/mockData'
 import { recipeTags } from '../../mock/mockTags'
@@ -39,7 +37,6 @@ export const HomePage: React.FC = () => {
 
 	return (
 		<>
-			<Header />
 			<main className={styles.container}>
 				<h1 className={styles.heading}>Лента рецептов</h1>
 				<div className={styles.content}>
@@ -65,7 +62,6 @@ export const HomePage: React.FC = () => {
 					</div>
 				</div>
 			</main>
-			<Footer />
 		</>
 	)
 }

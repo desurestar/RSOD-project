@@ -1,415 +1,170 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Footer } from '../../components/Footer/Footer';
-import { Header } from '../../components/Heared/Header';
-import { MiniPostCard } from '../../components/MiniPostCard/MiniPostCard';
-import { useAuthStore } from '../../stores/authStore';
-import { useProfileStore } from '../../stores/profileStore';
-import styles from './Profile.module.css';
-import Modal from 'react-modal';
-import { FaEdit, FaUserPlus, FaUserMinus } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
-Modal.setAppElement('#root');
+import { MiniPostCard } from '../../components/MiniPostCard/MiniPostCard';
+import { UserCardMini } from '../../components/UserCardMini/UserCardMini';
+import { useAuthStore } from '../../stores/authStore';
+import { blogAPI } from '../../api/blog';
+import { authAPI } from '../../api/auth';
+import styles from './Profile.module.css';
 
 export const Profile: React.FC = () => {
-  const { username } = useParams<{ username: string }>();
-  const navigate = useNavigate();
-  const { user: currentUser, followUser, unfollowUser } = useAuthStore();
-  const {
-    profile,
-    posts,
-    likedPosts,
-    followers,
-    following,
-    loading,
-    error,
-    fetchProfile,
-    fetchPosts,
-    fetchLikedPosts,
-    fetchFollowers,
-    fetchFollowing,
-    updateProfile,
-    uploadAvatar,
-  } = useProfileStore();
-  
-  const [activeTab, setActiveTab] = useState<'followers' | 'following' | 'posts' | 'liked'>('posts');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({
-    display_name: '',
-    bio: '',
-  });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, fetchProfile } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<'followers' | 'following' | 'posts' | 'liked' | null>(null);
+  const [tabData, setTabData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Проверяем, является ли текущий профиль профилем авторизованного пользователя
-  const isOwnProfile = currentUser?.username === username;
-
-  // Загружаем данные профиля при монтировании и изменении username
   useEffect(() => {
-    if (!username) {
-      navigate('/');
-      return;
-    }
+    fetchProfile();
+  }, [fetchProfile]);
 
-    fetchProfile(username);
-    fetchPosts(username);
-  }, [username, fetchProfile, fetchPosts, navigate]);
-
-  // Загружаем дополнительные данные при смене таба
   useEffect(() => {
-    if (!username) return;
+    if (!activeTab || !user) return;
+    
+    const fetchTabData = async () => {
+      setLoading(true);
+      try {
+        let data = [];
+        switch (activeTab) {
+          case 'posts':
+            data = await blogAPI.getPosts({ author: user.id });
+            break;
+          case 'liked':
+            data = await blogAPI.getPosts({ liked_by: user.id });
+            break;
+          case 'followers':
+            data = await authAPI.getFollowers(user.id);
+            break;
+          case 'following':
+            data = await authAPI.getFollowing(user.id);
+            break;
+          default:
+            break;
+        }
+        setTabData(data);
+      } catch (error) {
+        console.error('Error fetching tab data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    switch (activeTab) {
-      case 'liked':
-        fetchLikedPosts(username);
-        break;
-      case 'followers':
-        fetchFollowers(username);
-        break;
-      case 'following':
-        fetchFollowing(username);
-        break;
-      default:
-        break;
-    }
-  }, [activeTab, username, fetchLikedPosts, fetchFollowers, fetchFollowing]);
-
-  // Инициализируем данные для редактирования
-  useEffect(() => {
-    if (profile && isEditing) {
-      setEditData({
-        display_name: profile.display_name || '',
-        bio: profile.bio || '',
-      });
-    }
-  }, [profile, isEditing]);
+    fetchTabData();
+  }, [activeTab, user]);
 
   const handleTabClick = (tab: typeof activeTab) => {
-    setActiveTab(tab);
+    setActiveTab(prev => (prev === tab ? null : tab));
   };
 
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-  };
-
-  const handleSaveProfile = async () => {
-    if (!profile) return;
-    
+  const handleUnsubscribe = async (userId: number) => {
     try {
-      await updateProfile(editData);
-      
-      if (avatarFile) {
-        await uploadAvatar(avatarFile);
-        setAvatarFile(null);
+      await authAPI.unsubscribe(userId);
+      if (activeTab === 'following') {
+        setTabData(prev => prev.filter(user => user.id !== userId));
       }
-      
-      setIsEditing(false);
+      fetchProfile();
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      console.error('Unsubscribe error:', error);
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAvatarFile(e.target.files[0]);
-    }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFollow = async () => {
-    if (!profile || !currentUser) return;
-    
-    try {
-      if (profile.is_following) {
-        await unfollowUser(profile.username);
-      } else {
-        await followUser(profile.username);
-      }
-      
-      // Обновляем данные профиля
-      fetchProfile(profile.username);
-      fetchFollowers(profile.username);
-    } catch (error) {
-      console.error('Follow error:', error);
-    }
-  };
-
-  if (loading && !profile) {
-    return (
-      <div className={styles.loading}>
-        <Header />
-        <div className={styles.spinner}></div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.error}>
-        <Header />
-        <div className={styles.errorMessage}>{error}</div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className={styles.notFound}>
-        <Header />
-        <div className={styles.notFoundMessage}>Профиль не найден</div>
-        <Footer />
-      </div>
-    );
-  }
+  if (!user) return <div className={styles.loading}>Загрузка профиля...</div>;
 
   return (
     <>
-      <Header />
-      <div className={styles.profilePage}>
-        <div className={styles.card}>
-          <div className={styles.avatarContainer}>
+      <div className={styles.profileContainer}>
+        <div className={styles.profileHeader}>
+          <div className={styles.avatarWrapper}>
             <img
+              src={user.avatar_url || '/default-avatar.png'}
+              alt="Аватар"
               className={styles.avatar}
-              src={
-                avatarFile 
-                  ? URL.createObjectURL(avatarFile) 
-                  : profile.avatar_url || '/default-avatar.png'
-              }
-              alt='avatar'
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/default-avatar.png';
+              }}
             />
-            {isOwnProfile && isEditing && (
-              <button 
-                className={styles.avatarEditButton}
-                onClick={triggerFileInput}
-              >
-                <FaEdit />
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleAvatarChange}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                />
-              </button>
-            )}
           </div>
-          
-          {isEditing ? (
-            <div className={styles.editForm}>
-              <input
-                type="text"
-                value={editData.display_name}
-                onChange={(e) => setEditData({...editData, display_name: e.target.value})}
-                placeholder="Имя"
-                className={styles.editInput}
-              />
-              <textarea
-                value={editData.bio}
-                onChange={(e) => setEditData({...editData, bio: e.target.value})}
-                placeholder="О себе"
-                className={styles.editTextarea}
-                rows={3}
-              />
-              <div className={styles.editButtons}>
-                <button 
-                  className={styles.saveButton}
-                  onClick={handleSaveProfile}
-                  disabled={loading}
-                >
-                  Сохранить
-                </button>
-                <button 
-                  className={styles.cancelButton}
-                  onClick={handleCancelEdit}
-                  disabled={loading}
-                >
-                  Отмена
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <h2 className={styles.name}>{profile.display_name || profile.username}</h2>
-              <div className={styles.username}>@{profile.username}</div>
-              {profile.bio && <div className={styles.bio}>{profile.bio}</div>}
-              
-              <div className={styles.actions}>
-                {isOwnProfile ? (
-                  <button 
-                    className={styles.editButton}
-                    onClick={handleEditClick}
-                  >
-                    <FaEdit /> Редактировать профиль
-                  </button>
-                ) : (
-                  <button
-                    className={profile.is_following ? styles.unfollowButton : styles.followButton}
-                    onClick={handleFollow}
-                    disabled={loading}
-                  >
-                    {profile.is_following ? (
-                      <>
-                        <FaUserMinus /> Отписаться
-                      </>
-                    ) : (
-                      <>
-                        <FaUserPlus /> Подписаться
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+          <div className={styles.profileInfo}>
+            <h1 className={styles.displayName}>{user.display_name || user.username}</h1>
+            <p className={styles.username}>@{user.username}</p>
+            <p className={styles.email}>{user.email}</p>
+            <Link to="/profile/edit" className={styles.editButton}>
+              Редактировать профиль
+            </Link>
+          </div>
         </div>
 
-        <div className={styles.stats}>
+        <div className={styles.statsContainer}>
           <div 
             className={`${styles.statItem} ${activeTab === 'followers' ? styles.active : ''}`}
             onClick={() => handleTabClick('followers')}
           >
-            <span>Подписчики</span>
-            <strong>{profile.followers_count || 0}</strong>
+            <span className={styles.statNumber}>{user.subscribers_count || 0}</span>
+            <span className={styles.statLabel}>Подписчики</span>
           </div>
           <div 
             className={`${styles.statItem} ${activeTab === 'following' ? styles.active : ''}`}
             onClick={() => handleTabClick('following')}
           >
-            <span>Подписки</span>
-            <strong>{profile.following_count || 0}</strong>
+            <span className={styles.statNumber}>{user.subscriptions_count || 0}</span>
+            <span className={styles.statLabel}>Подписки</span>
           </div>
           <div 
             className={`${styles.statItem} ${activeTab === 'posts' ? styles.active : ''}`}
             onClick={() => handleTabClick('posts')}
           >
-            <span>Посты</span>
-            <strong>{profile.posts_count || 0}</strong>
+            <span className={styles.statNumber}>{user.posts_count || 0}</span>
+            <span className={styles.statLabel}>Посты</span>
           </div>
           <div 
             className={`${styles.statItem} ${activeTab === 'liked' ? styles.active : ''}`}
             onClick={() => handleTabClick('liked')}
           >
-            <span>Понравилось</span>
-            <strong>{profile.liked_posts_count || 0}</strong>
+            <span className={styles.statNumber}>{user.liked_posts_count || 0}</span>
+            <span className={styles.statLabel}>Лайки</span>
           </div>
         </div>
 
-        <div className={styles.tabContent}>
-          {activeTab === 'followers' && (
-            <>
-              <h3 className={styles.tabTitle}>Подписчики</h3>
-              {followers.length > 0 ? (
-                <ul className={styles.list}>
-                  {followers.map(follower => (
-                    <li key={follower.id} className={styles.userItem}>
-                      <img 
-                        src={follower.avatar_url || '/default-avatar.png'} 
-                        alt={follower.username} 
-                        className={styles.userAvatar}
-                      />
-                      <div className={styles.userInfo}>
-                        <span className={styles.userName}>
-                          {follower.display_name || follower.username}
-                        </span>
-                        <span className={styles.userUsername}>
-                          @{follower.username}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className={styles.emptyMessage}>
-                  {isOwnProfile 
-                    ? 'У вас пока нет подписчиков.' 
-                    : 'У пользователя пока нет подписчиков.'}
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === 'following' && (
-            <>
-              <h3 className={styles.tabTitle}>Подписки</h3>
-              {following.length > 0 ? (
-                <ul className={styles.list}>
-                  {following.map(user => (
-                    <li key={user.id} className={styles.userItem}>
-                      <img 
-                        src={user.avatar_url || '/default-avatar.png'} 
-                        alt={user.username} 
-                        className={styles.userAvatar}
-                      />
-                      <div className={styles.userInfo}>
-                        <span className={styles.userName}>
-                          {user.display_name || user.username}
-                        </span>
-                        <span className={styles.userUsername}>
-                          @{user.username}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className={styles.emptyMessage}>
-                  {isOwnProfile 
-                    ? 'Вы ни на кого не подписаны.' 
-                    : 'Пользователь ни на кого не подписан.'}
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === 'posts' && (
-            <>
-              <h3 className={styles.tabTitle}>Посты</h3>
-              {posts.length > 0 ? (
-                <div className={styles.postsGrid}>
-                  {posts.map(post => (
-                    <MiniPostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              ) : (
-                <div className={styles.emptyMessage}>
-                  {isOwnProfile 
-                    ? 'У вас пока нет постов.' 
-                    : 'У пользователя пока нет постов.'}
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === 'liked' && (
-            <>
-              <h3 className={styles.tabTitle}>Понравившиеся посты</h3>
-              {likedPosts.length > 0 ? (
-                <div className={styles.postsGrid}>
-                  {likedPosts.map(post => (
-                    <MiniPostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              ) : (
-                <div className={styles.emptyMessage}>
-                  {isOwnProfile 
-                    ? 'Вы еще не лайкнули ни одного поста.' 
-                    : 'Пользователь еще не лайкнул ни одного поста.'}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        {activeTab && (
+          <div className={styles.tabContent}>
+            <h2 className={styles.tabTitle}>
+              {activeTab === 'followers' && 'Подписчики'}
+              {activeTab === 'following' && 'Подписки'}
+              {activeTab === 'posts' && 'Мои посты'}
+              {activeTab === 'liked' && 'Понравившиеся посты'}
+            </h2>
+            
+            {loading ? (
+              <div className={styles.loading}>Загрузка...</div>
+            ) : (
+              <div className={styles.tabList}>
+                {tabData.length === 0 ? (
+                  <div className={styles.emptyMessage}>
+                    {activeTab === 'followers' && 'У вас пока нет подписчиков'}
+                    {activeTab === 'following' && 'Вы ни на кого не подписаны'}
+                    {activeTab === 'posts' && 'У вас пока нет постов'}
+                    {activeTab === 'liked' && 'Вы еще не лайкнули ни одного поста'}
+                  </div>
+                ) : (
+                  tabData.map(item => (
+                    <div key={item.id} className={styles.tabItem}>
+                      {activeTab === 'posts' || activeTab === 'liked' ? (
+                        <MiniPostCard post={item} />
+                      ) : (
+                        <UserCardMini 
+                          user={item} 
+                          variant="mini"
+                          onUnsubscribe={activeTab === 'following' ? handleUnsubscribe : undefined}
+                        />
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      <Footer />
     </>
   );
 };

@@ -19,6 +19,7 @@ interface AuthState {
 	logout: () => Promise<void>
 	fetchProfile: () => Promise<void>
 	setTokens: (access: string, refresh: string) => void
+	updateUser: (userData: Partial<User>) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -50,6 +51,18 @@ export const useAuthStore = create<AuthState>()(
 					throw error
 				}
 			},
+
+			updateUser: userData =>
+				set(state => ({
+					user: state.user
+						? {
+								...state.user,
+								...userData,
+								// Обновляем URL аватарки, если пришла новая
+								avatar_url: userData.avatar_url || state.user.avatar_url,
+						  }
+						: null,
+				})),
 
 			register: async (username, email, password, password2) => {
 				set({ loading: true, error: null })

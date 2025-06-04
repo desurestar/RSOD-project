@@ -75,7 +75,7 @@ export const Header: React.FC = () => {
         </Link>
 
         <nav className={styles.nav}>
-          <Link to="/recipes">Рецепты</Link>
+          <Link to="/">Рецепты</Link>
           <Link to="/articles">Статьи</Link>
           {isAuthenticated && <Link to="/subscriptions">Подписки</Link>}
           {user?.role === 'admin' && <Link to="/admin">Админка</Link>}
@@ -139,7 +139,7 @@ export const Header: React.FC = () => {
               {isMenuOpen && (
                 <div className={styles.dropdown}>
                   <Link 
-                    to={`/profile/${user?.username}`} 
+                    to={`/profile/`} 
                     className={styles.dropdownItem}
                     onClick={() => setIsMenuOpen(false)}
                   >

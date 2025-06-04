@@ -1,37 +1,115 @@
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { Suspense, lazy } from 'react'
+import {
+	Navigate,
+	Route,
+	BrowserRouter as Router,
+	Routes,
+} from 'react-router-dom'
 import './App.css'
-import { ArticlePage } from './pages/ArticlePage/ArticlePage.tsx'
-// import { CreatePostPage} from './pages/CreatePostPage/CreatePostPage.tsx'
-import { HomePage } from './pages/HomePage/HomePage.tsx'
-import { PostPage } from './pages/PostPage/PostPage.tsx'
-// import { Profile } from './pages/Profile/Profile.tsx'
-import { SubscriptionsPage } from './pages/SubscriptionsPage/SubscriptionsPage.tsx'
-import { UserPublicProfile } from './pages/UserProfilePage/UserPublicProfile.tsx'
-// import { useGetMeQuery } from './services/authApi.ts'
-// import { useAuthStore } from './store/authStore.ts'
-// import { useEffect } from 'react'
+import { Layout } from './components/Layout/Layout'
+import { LoadingSpinner } from './components/LoadingSpinner/LoadingSpinner'
+import { useAuthStore } from './stores/authStore'
+
+// Ленивая загрузка страниц
+const HomePage = lazy(() =>
+	import('./pages/HomePage/HomePage').then(module => ({
+		default: module.HomePage,
+	}))
+)
+const ArticlePage = lazy(() =>
+	import('./pages/ArticlePage/ArticlePage').then(module => ({
+		default: module.ArticlePage,
+	}))
+)
+const Profile = lazy(() =>
+	import('./pages/Profile/Profile').then(module => ({
+		default: module.Profile,
+	}))
+)
+const UserPublicProfile = lazy(() =>
+	import('./pages/UserProfilePage/UserPublicProfile').then(module => ({
+		default: module.UserPublicProfile,
+	}))
+)
+const PostPage = lazy(() =>
+	import('./pages/PostPage/PostPage').then(module => ({
+		default: module.PostPage,
+	}))
+)
+const SubscriptionsPage = lazy(() =>
+	import('./pages/SubscriptionsPage/SubscriptionsPage').then(module => ({
+		default: module.SubscriptionsPage,
+	}))
+)
+const EditProfilePage = lazy(()=> import('./pages/EditProfilePage/EditProfilePage').then(module => ({
+  default: module.EditProfilePage
+})))
+
+// const CreatePostPage = lazy(() => import('./pages/CreatePostPage/CreatePostPage').then(module => ({ default: module.CreatePostPage })));
+const NotFoundPage = lazy(() =>
+	import('./pages/NotFoundPage/NotFoundPage').then(module => ({
+		default: module.NotFoundPage,
+	}))
+)
+
+interface ProtectedRouteProps {
+	children: React.ReactNode
+}
+
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+	const { user } = useAuthStore()
+	return user ? <>{children}</> : <Navigate to='/' replace />
+}
 
 function App() {
-	// const {data: user, isSuccess} = useGetMeQuery()
-	// const setUser = useAuthStore(state => state.setUser)
-
-	// useEffect(() => {
-	// 	if (user && isSuccess) {
-	// 		setUser(user)
-	// 	}
-	// }, [user, isSuccess, setUser])
-
 	return (
 		<Router>
-			<Routes>
-				<Route path='/' element={<HomePage />} />
-				<Route path='/article' element={<ArticlePage />} />
-				{/* <Route path='/profile' element={<Profile />} /> */}
-				<Route path='/profile/:username' element={<UserPublicProfile />} />
-				<Route path='/posts/:postId' element={<PostPage />} />
-				<Route path='/subscriptions' element={<SubscriptionsPage />} />
-				{/* <Route path='/create-post' element={<CreatePostPage />} /> */}
-			</Routes>
+			<Layout>
+				<Suspense fallback={<LoadingSpinner fullPage />}>
+					<Routes>
+						<Route path='/' element={<HomePage />} />
+						<Route path='/article' element={<ArticlePage />} />
+						<Route path='/posts/:postId' element={<PostPage />} />
+						<Route path='/profile/:username' element={<UserPublicProfile />} />
+
+						<Route
+							path='/profile'
+							element={
+								<ProtectedRoute>
+									<Profile />
+								</ProtectedRoute>
+							}
+						/>
+
+						<Route
+							path='/subscriptions'
+							element={
+								<ProtectedRoute>
+									<SubscriptionsPage />
+								</ProtectedRoute>
+							}
+						/>
+
+						{/* <Route path="/create-post" element={
+              <ProtectedRoute>
+                <CreatePostPage />
+              </ProtectedRoute>
+            } /> */}
+
+						<Route
+							path='/profile/edit'
+							element={
+								<ProtectedRoute>
+									<EditProfilePage />
+								</ProtectedRoute>
+							}
+						/>
+
+						<Route path='/404' element={<NotFoundPage />} />
+						<Route path='*' element={<Navigate to='/404' replace />} />
+					</Routes>
+				</Suspense>
+			</Layout>
 		</Router>
 	)
 }

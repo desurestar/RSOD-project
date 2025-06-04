@@ -1,62 +1,110 @@
+/* UserCard.module.css */
 .card {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	background-color: var(--color-card-bg);
-	border-radius: 1rem;
-	padding: 1rem;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-	transition: transform 0.2s;
-	gap: 1rem;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--color-card-bg);
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .card:hover {
-	transform: translateY(-2px);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.userLink {
-	display: flex;
-	align-items: center;
-	text-decoration: none;
-	color: inherit;
-	gap: 1rem;
-	flex: 1;
+.card.mini {
+  padding: 8px;
+}
+
+.avatarContainer {
+  width: 48px;
+  height: 48px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.card.mini .avatarContainer {
+  width: 36px;
+  height: 36px;
 }
 
 .avatar {
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
-	object-fit: cover;
-	border: 2px solid var(--color-primary);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
 }
 
-.info {
-	display: flex;
-	flex-direction: column;
+.userLink {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  text-decoration: none;
+  color: inherit;
 }
 
-.name {
-	font-weight: 600;
-	color: var(--color-primary);
+.userInfo {
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.displayName {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-primary);
+}
+
+.card.mini .displayName {
+  font-size: 0.9rem;
 }
 
 .username {
-	font-size: 0.9rem;
-	opacity: 0.7;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.unsubscribeButton {
-	background-color: var(--color-button);
-	color: var(--color-primary);
-	border: none;
-	border-radius: 0.5rem;
-	padding: 0.4rem 0.8rem;
-	cursor: pointer;
-	transition: background-color 0.2s ease;
-	font-family: var(--font-main);
+.card.mini .username {
+  font-size: 0.8rem;
 }
 
-.unsubscribeButton:hover {
-	background-color: var(--color-button-hover);
+.email {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unsubscribeBtn {
+  margin-left: 12px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+}
+
+.unsubscribeBtn:hover {
+  background-color: var(--color-button-hover);
+  transform: translateY(-1px);
 }
