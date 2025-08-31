@@ -1,20 +1,20 @@
+from django.core.files.images import get_image_dimensions
+from django.db.models import Count
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Count 
-from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.shortcuts import get_object_or_404
-from django.core.files.images import get_image_dimensions
-from rest_framework.parsers import MultiPartParser, JSONParser
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from blog.models import Post  # убедись что путь корректен
+from blog.serializers import PostSerializer  # существующий сериализатор постов
 from core.permissions import IsAdminUserOrReadOnly
+
 from .models import CustomUser
-from .serializers import (
-    UserSerializer,
-    UserRegisterSerializer,
-    CustomTokenObtainPairSerializer,
-    UserUpdateSerializer
-)
+from .serializers import CustomTokenObtainPairSerializer, UserRegisterSerializer, UserSerializer, UserUpdateSerializer
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -27,17 +27,17 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
+
         # Генерация токенов
         refresh = RefreshToken.for_user(user)
         tokens = {
             'access': str(refresh.access_token),
             'refresh': str(refresh),
         }
-        
+
         # Сериализация пользователя
         user_serializer = UserSerializer(user, context={'request': request})
-        
+
         return Response({
             'tokens': tokens,
             'user': user_serializer.data
@@ -53,21 +53,23 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         if self.request.method in ['PUT', 'PATCH']:
             return UserUpdateSerializer
         return UserSerializer
-    
+
     def perform_update(self, serializer):
         if 'avatar' in self.request.data and self.request.data['avatar'] is None:
             self.request.user.avatar.delete()
         serializer.save()
 
     def get_object(self):
-        # Исправленный метод с аннотацией счетчиков
         user = self.request.user
-        return CustomUser.objects.filter(pk=user.pk).annotate(
-            subscribers_count=Count('subscribers'),
-            subscriptions_count=Count('subscriptions'),
-            posts_count=Count('posts'),
-            liked_posts_count=Count('liked_posts')
-        ).first()
+        return (CustomUser.objects
+                .filter(pk=user.pk)
+                .annotate(
+                    subscribers_count=Count('subscribers', distinct=True),
+                    subscriptions_count=Count('subscriptions', distinct=True),
+                    posts_count=Count('posts', distinct=True),
+                    liked_posts_count=Count('liked_posts', distinct=True),
+                )
+                .first())
 
     def update(self, request, *args, **kwargs):
         if not request.user.is_admin and 'role' in request.data:
@@ -77,7 +79,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request
-        return context  
+        return context
 class UserAvatarUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -109,7 +111,7 @@ class UserAvatarUpdateView(APIView):
                 try:
                     user.avatar.delete()
                 except Exception as e:
-                    print(f"Error deleting old avatar: {e}")
+                    print(f'Error deleting old avatar: {e}')
 
             user.avatar.save(avatar_file.name, avatar_file)
             user.save()
@@ -160,3 +162,30 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdminUserOrReadOnly]
+
+class UserPostsView(generics.ListAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        user = get_object_or_404(CustomUser, pk=self.kwargs['user_id'])
+        return Post.objects.filter(author=user).order_by('-created_at')
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
+class UserLikedPostsView(generics.ListAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = get_object_or_404(CustomUser, pk=self.kwargs['user_id'])
+        # предполагается что в Post есть ManyToMany liked_by = models.ManyToManyField(User, related_name='liked_posts', ...)
+        return Post.objects.filter(liked_by=user).order_by('-created_at')
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx

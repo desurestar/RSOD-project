@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { authAPI } from '../../api/auth'
+import { blogAPI } from '../../api/blog'
 import { Post, User } from '../../api/types'
 import { MiniPostCard } from '../../components/MiniPostCard/MiniPostCard'
 import { UserCardMini } from '../../components/UserCardMini/UserCardMini'
 import { useAuthStore } from '../../stores/authStore'
-import { useBlogStore } from '../../stores/blogStore' // Добавлен импорт blogStore
 import styles from './Profile.module.css'
 
 export const Profile: React.FC = () => {
@@ -17,75 +17,59 @@ export const Profile: React.FC = () => {
 		error: authError,
 	} = useAuthStore()
 
-	const { posts } = useBlogStore() // Используем posts из blogStore
-
 	const [activeTab, setActiveTab] = useState<
 		'followers' | 'following' | 'posts' | 'liked' | null
 	>(null)
 	const [tabData, setTabData] = useState<(Post | User)[]>([])
 	const [tabLoading, setTabLoading] = useState(false)
 	const [tabError, setTabError] = useState<string | null>(null)
+	const tabCache = useRef<Record<string, (Post | User)[]>>({})
 
-	// Загрузка профиля при монтировании
 	useEffect(() => {
-		const loadData = async () => {
-			if (isAuthenticated) {
-				await fetchProfile()
-			}
+		if (isAuthenticated) {
+			fetchProfile()
 		}
-		loadData()
 	}, [isAuthenticated, fetchProfile])
 
-	// Загрузка данных для активной вкладки
-	useEffect(() => {
-		if (!activeTab || !user) return
-
-		const fetchTabData = async () => {
-			setTabLoading(true)
-			setTabError(null)
-
-			try {
-				let data: (Post | User)[] = []
-
-				switch (activeTab) {
-					case 'followers':
-						data = await authAPI.getFollowers(user.id)
-						break
-					case 'following':
-						data = await authAPI.getFollowing(user.id)
-						break
-					case 'posts':
-						// Фильтруем посты текущего пользователя
-						data = posts.filter(post => post.author.id === user.id)
-						break
-					case 'liked':
-						console.log(posts)
-						// Фильтруем посты, которые лайкнул пользователь
-						data = posts.filter(post => post.is_liked)
-						break
-				}
-
-				setTabData(data)
-			} catch (err) {
-				setTabError('Не удалось загрузить данные')
-				console.error('Ошибка загрузки:', err)
-			} finally {
-				setTabLoading(false)
-			}
+	const loadTab = async (tab: typeof activeTab) => {
+		if (!user || !tab) return
+		if (tabCache.current[tab]) {
+			setTabData(tabCache.current[tab])
+			return
 		}
-
-		fetchTabData()
-	}, [activeTab, user, posts]) // Добавлена зависимость от posts
+		setTabLoading(true)
+		setTabError(null)
+		try {
+			let data: (Post | User)[] = []
+			switch (tab) {
+				case 'followers':
+					data = await authAPI.getFollowers(user.id)
+					break
+				case 'following':
+					data = await authAPI.getFollowing(user.id)
+					break
+				case 'posts':
+					data = await blogAPI.getUserPosts(user.id)
+					break
+				case 'liked':
+					data = await blogAPI.getUserLikedPosts(user.id)
+					break
+			}
+			tabCache.current[tab] = data
+			setTabData(data)
+		} catch (e) {
+			setTabError('Не удалось загрузить данные')
+			console.error(e)
+		} finally {
+			setTabLoading(false)
+		}
+	}
 
 	useEffect(() => {
-		const init = async () => {
-			if (isAuthenticated) {
-				await fetchProfile()
-				await useBlogStore.getState().fetchPosts() // Загружаем посты
-			}
+		if (activeTab) {
+			loadTab(activeTab)
 		}
-		init()
-	}, [isAuthenticated, fetchProfile])
+	}, [activeTab, user])
 
 	const handleTabClick = (tab: typeof activeTab) => {
 		setActiveTab(prev => (prev === tab ? null : tab))
@@ -94,8 +78,11 @@ export const Profile: React.FC = () => {
 	const handleUnsubscribe = async (userId: number) => {
 		try {
 			await authAPI.unsubscribe(userId)
+			// Инвалидируем кэш вкладок following / followers и профиль
+			delete tabCache.current.following
+			delete tabCache.current.followers
 			if (activeTab === 'following') {
-				setTabData(prev => prev.filter(user => user.id !== userId))
+				setTabData(prev => prev.filter(u => u.id !== userId))
 			}
 			await fetchProfile()
 		} catch (err) {

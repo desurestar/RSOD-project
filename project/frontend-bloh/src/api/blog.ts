@@ -216,4 +216,17 @@ export const blogAPI = {
 		})
 		return response.data
 	},
+
+	getUserPosts: async (userId: number) => {
+		const response = await api.get<PaginatedResponse<Post>>(
+			`auth/users/${userId}/posts/`
+		)
+		return response.data.results
+	},
+	getUserLikedPosts: async (userId: number) => {
+		const response = await api.get<PaginatedResponse<Post>>(
+			`auth/users/${userId}/liked/`
+		)
+		return response.data.results
+	},
 }

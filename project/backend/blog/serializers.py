@@ -52,49 +52,45 @@ class StepDataSerializer(serializers.Serializer):
 class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    ingredients = PostIngredientSerializer(source='postingredient_set', many=True, read_only=True)
-    steps = RecipeStepSerializer(many=True, read_only=True)
-    is_liked = serializers.SerializerMethodField()
-
     tag_ids = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
-        source='tags',
         many=True,
         write_only=True,
         required=False
     )
-    ingredient_data = IngredientDataSerializer(many=True, write_only=True, required=False)
-    step_data = StepDataSerializer(many=True, write_only=True, required=False)
+    is_liked = serializers.SerializerMethodField()
+    likes_count = serializers.IntegerField(read_only=True)
+    steps = RecipeStepSerializer(many=True, read_only=True)  # relies on related_name='steps'
 
     class Meta:
         model = Post
         fields = [
-            'id', 'post_type', 'status', 'title', 'excerpt', 'content', 'cover_image',
-            'created_at', 'updated_at', 'author', 'tags', 'ingredients',
-            'steps', 'likes_count', 'comments_count', 'views_count',
-            'calories', 'cooking_time', 'is_liked',
-            'tag_ids', 'ingredient_data', 'step_data'
+            'id','post_type','status','title','excerpt','content','cover_image',
+            'created_at','updated_at','author','tags','tag_ids','likes_count',
+            'comments_count','views_count','calories','cooking_time','is_liked',
+            'steps'
         ]
         read_only_fields = [
-            'id', 'created_at', 'updated_at', 'author',
-            'likes_count', 'comments_count', 'views_count', 'is_liked'
+            'id','created_at','updated_at','author','likes_count',
+            'comments_count','views_count','is_liked','tags','steps'
         ]
 
     def get_is_liked(self, obj):
         request = self.context.get('request')
-        user = getattr(request, 'user', None)
-        if user and user.is_authenticated:
-            return obj.liked_by.filter(id=user.id).exists()
-        return False
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.liked_by.filter(pk=request.user.pk).exists()
 
     def create(self, validated_data):
-        request = self.context.get('request')
+        tag_ids = validated_data.pop('tag_ids', [])
         ingredients_data = validated_data.pop('ingredient_data', [])
         steps_data = validated_data.pop('step_data', [])
+        request = self.context.get('request')
 
         post = super().create(validated_data)
+        if tag_ids:
+            post.tags.set(tag_ids)
 
-        # Создание ингредиентов
         for item in ingredients_data:
             PostIngredient.objects.create(
                 post=post,
@@ -102,24 +98,26 @@ class PostSerializer(serializers.ModelSerializer):
                 quantity=item['quantity']
             )
 
-        # Создание шагов
         for index, step in enumerate(steps_data):
-            step_image = request.FILES.get(f'step_images_{index}')
+            step_image = request.FILES.get(f'step_images_{index}') if request else None
             RecipeStep.objects.create(
                 post=post,
                 order=step['order'],
                 description=step['description'],
                 image=step_image
             )
-
         return post
 
     def update(self, instance, validated_data):
-        request = self.context.get('request')
+        tag_ids = validated_data.pop('tag_ids', None)
         ingredients_data = validated_data.pop('ingredient_data', None)
         steps_data = validated_data.pop('step_data', None)
+        request = self.context.get('request')
 
         instance = super().update(instance, validated_data)
+
+        if tag_ids is not None:
+            instance.tags.set(tag_ids)
 
         if ingredients_data is not None:
             PostIngredient.objects.filter(post=instance).delete()
@@ -133,14 +131,13 @@ class PostSerializer(serializers.ModelSerializer):
         if steps_data is not None:
             instance.steps.all().delete()
             for index, step in enumerate(steps_data):
-                step_image = request.FILES.get(f'step_images_{index}')
-                RecipeStep.objects.create(
+                step_image = request.FILES.get(f'step_images_{index}') if request else None
+                RecipeStep.create(
                     post=instance,
                     order=step.get('order'),
                     description=step.get('description'),
                     image=step_image
                 )
-
         return instance
 
 class CommentSerializer(serializers.ModelSerializer):

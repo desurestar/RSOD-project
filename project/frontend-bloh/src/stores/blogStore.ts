@@ -138,24 +138,20 @@ export const useBlogStore = create<BlogState>(set => ({
 
 	likePost: async id => {
 		try {
-			const { likes } = await blogAPI.likePost(id)
+			const { likes, is_liked } = await blogAPI.likePost(id)
 			set(state => ({
 				posts: state.posts.map(post =>
-					post.id === id
-						? { ...post, likes_count: likes, is_liked: !post.is_liked }
-						: post
+					post.id === id ? { ...post, likes_count: likes, is_liked } : post
 				),
 				adminPosts: state.adminPosts.map(post =>
-					post.id === id
-						? { ...post, likes_count: likes, is_liked: !post.is_liked }
-						: post
+					post.id === id ? { ...post, likes_count: likes, is_liked } : post
 				),
 				currentPost:
 					state.currentPost?.id === id
 						? {
 								...state.currentPost,
 								likes_count: likes,
-								is_liked: !state.currentPost.is_liked,
+								is_liked,
 						  }
 						: state.currentPost,
 			}))
