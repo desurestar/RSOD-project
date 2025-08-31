@@ -70,15 +70,15 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-	const { user, isAdmin } = useAuthStore()
+	const { user } = useAuthStore()
 
 	if (!user) {
 		return <Navigate to='/' replace />
 	}
 
-	if (!isAdmin()) {
-		return <Navigate to='/profile' replace />
-	}
+	// if (!isAdmin()) {
+	// 	return <Navigate to='/profile' replace />
+	// }
 
 	return <>{children}</>
 }

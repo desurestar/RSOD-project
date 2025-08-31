@@ -10,9 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
-from datetime import timedelta
 import os
+from datetime import timedelta
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,6 +30,8 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+asda = 'asd '
+asd = 'asd'
 # Application definition
 
 INSTALLED_APPS = [
@@ -44,7 +46,7 @@ INSTALLED_APPS = [
     'core',
     'users',
     'blog',
-    
+
 ]
 
 REST_FRAMEWORK = {
@@ -55,10 +57,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    
+
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10
-}   
+}
 
 DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
@@ -76,7 +78,7 @@ MIDDLEWARE = [
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    'http://localhost:5173',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -114,7 +116,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'RSOD_BLOG',
-        'USER': 'dimon2',
+        'USER': 'postgres',
         'PASSWORD': '190485',
         'HOST': 'localhost',
         'PORT': '5432',

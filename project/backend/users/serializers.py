@@ -1,8 +1,7 @@
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.validators import EmailValidator
+from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
@@ -27,7 +26,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if len(data['password']) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters long.")
+            raise serializers.ValidationError('Password must be at least 8 characters long.')
         return data
 
     def create(self, validated_data):
@@ -50,7 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'display_name', 
+            'id', 'username', 'email', 'display_name',
             'avatar_url', 'is_admin', 'role',
             'subscribers_count', 'subscriptions_count',
             'posts_count', 'liked_posts_count'
@@ -81,10 +80,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     def validate_role(self, value):
         request = self.context.get('request')
         if request and not request.user.is_admin:
-            raise serializers.ValidationError("Only admin can change roles.")
-        return value    
+            raise serializers.ValidationError('Only admin can change roles.')
+        return value
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exclude(pk=self.instance.pk).exists():
-            raise serializers.ValidationError("Email already in use.")
+            raise serializers.ValidationError('Email already in use.')
         return value

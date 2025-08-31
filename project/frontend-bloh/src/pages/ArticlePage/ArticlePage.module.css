@@ -1,4 +1,48 @@
 .container {
+	display: flex;
+	flex-direction: column;
 	padding: 20px;
 	font-size: 18px;
+}
+
+.heading {
+	margin: 0 0 1.5rem;
+	color: var(--color-primary);
+	font-size: 36px;
+	font-weight: 600;
+	text-align: center;
+}
+
+.content {
+	display: flex;
+	gap: 2rem;
+	align-items: flex-start;
+}
+
+.posts {
+	flex: 3;
+	min-width: 0;
+}
+
+.sidebar {
+	flex: 1;
+	padding: 0.5rem 0.25rem;
+	position: sticky;
+	top: 80px;
+	align-self: flex-start;
+}
+
+@media (max-width: 960px) {
+	.content {
+		flex-direction: column;
+	}
+	.sidebar {
+		position: static;
+		width: 100%;
+		order: -1;
+		padding: 0;
+	}
+	.heading {
+		text-align: center;
+	}
 }

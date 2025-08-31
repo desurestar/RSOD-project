@@ -2,15 +2,30 @@
 import React, { useState } from 'react'
 import styles from './CommentForm.module.css'
 
-export const NewCommentForm: React.FC<{ placeholder: string }> = ({
+interface NewCommentFormProps {
+	placeholder: string
+	onSubmit: (text: string) => Promise<void> | void
+	disabled?: boolean
+	autoFocus?: boolean
+}
+
+export const NewCommentForm: React.FC<NewCommentFormProps> = ({
 	placeholder,
+	onSubmit,
+	disabled,
+	autoFocus,
 }) => {
 	const [text, setText] = useState('')
+	const [pending, setPending] = useState(false)
 
-	const handleSubmit = () => {
-		if (text.trim()) {
-			console.log('Новый комментарий:', text)
+	const handleSend = async () => {
+		if (!text.trim() || pending || disabled) return
+		try {
+			setPending(true)
+			await onSubmit(text.trim())
 			setText('')
+		} finally {
+			setPending(false)
 		}
 	}
 
@@ -20,8 +35,18 @@ export const NewCommentForm: React.FC<{ placeholder: string }> = ({
 				value={text}
 				onChange={e => setText(e.target.value)}
 				placeholder={placeholder}
+				disabled={disabled || pending}
+				rows={3}
+				autoFocus={autoFocus}
 			/>
-			<button onClick={handleSubmit}>Отправить</button>
+			<div className={styles.actions}>
+				<button
+					onClick={handleSend}
+					disabled={!text.trim() || pending || disabled}
+				>
+					{pending ? '...' : 'Отправить'}
+				</button>
+			</div>
 		</div>
 	)
 }

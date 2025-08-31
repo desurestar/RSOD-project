@@ -1,319 +1,596 @@
-import { useState, useEffect } from 'react'
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { blogAPI } from '../../api/blog'
-import { Tag, Ingredient, RecipeStep, PostCreate } from '../../api/types'
-import { LoadingSpinner } from '../../components/LoadingSpinner/LoadingSpinner'
-import { Header } from '../../components/Heared/Header'
-import { Footer } from '../../components/Footer/Footer'
+import { Ingredient, PostCreate, Tag } from '../../api/types'
+import { useAuthStore } from '../../stores/authStore'
+import { useBlogStore } from '../../stores/blogStore'
 import styles from './CreatePostPage.module.css'
 
+interface IngredientInput {
+	ingredient: number
+	amount: string
+	unit: string
+}
+
+interface StepInput {
+	order: number
+	description: string
+	image?: File | null
+	imagePreview?: string | null
+}
+
 export const CreatePostPage = () => {
-  const navigate = useNavigate()
-  const [postType, setPostType] = useState<'recipe' | 'article'>('recipe')
-  const [title, setTitle] = useState('')
-  const [excerpt, setExcerpt] = useState('')
-  const [content, setContent] = useState('')
-  const [coverImage, setCoverImage] = useState<File | null>(null)
-  const [tags, setTags] = useState<Tag[]>([])
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
-  const [ingredients, setIngredients] = useState<Ingredient[]>([])
-  const [recipeSteps, setRecipeSteps] = useState<RecipeStep[]>([])
-  const [calories, setCalories] = useState<number | null>(null)
-  const [cookingTime, setCookingTime] = useState<number | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+	const { user } = useAuthStore()
+	const {
+		tags,
+		ingredients,
+		fetchTags,
+		fetchIngredients,
+		createPost,
+		loading,
+		error,
+	} = useBlogStore()
+	const navigate = useNavigate()
 
-  // Загрузка необходимых данных
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [tagsRes, ingredientsRes, stepsRes] = await Promise.all([
-          blogAPI.getTags(),
-          blogAPI.getIngredients(),
-          blogAPI.getRecipeSteps()
-        ])
-        
-        setTags(tagsRes.results || tagsRes)
-        setIngredients(ingredientsRes.results || ingredientsRes)
-        setRecipeSteps(stepsRes.results || stepsRes)
-      } catch (err) {
-        setError('Ошибка загрузки данных')
-        console.error(err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    
-    fetchData()
-  }, [])
+	const [formData, setFormData] = useState<Partial<PostCreate>>({
+		post_type: 'recipe',
+		title: '',
+		excerpt: '',
+		content: '',
+		calories: undefined,
+		cooking_time: undefined,
+		status: 'draft',
+		tag_ids: [],
+		ingredient_data: [],
+		step_data: [],
+	})
+	const [coverImage, setCoverImage] = useState<File | null>(null)
+	const [coverPreview, setCoverPreview] = useState<string | null>(null)
+	const [ingredientsInput, setIngredientsInput] = useState<IngredientInput[]>(
+		[]
+	)
+	const [stepsInput, setStepsInput] = useState<StepInput[]>([])
+	const [localError, setLocalError] = useState<string>('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
+	const units = [
+		'г',
+		'кг',
+		'мл',
+		'л',
+		'шт',
+		'ч.л.',
+		'ст.л.',
+		'стакан',
+		'по вкусу',
+		'',
+	]
 
-    try {
-      const postData: PostCreate = {
-        post_type: postType,
-        title,
-        excerpt,
-        content,
-        cover_image: coverImage || undefined,
-        tag_ids: selectedTagIds,
-        ingredient_data: ingredients.map(ing => ({
-          ingredient: ing.id,
-          quantity: '1' // Здесь можно добавить поле для количества
-        })),
-        recipe_step_ids: recipeSteps.map(step => step.id),
-        calories: calories || undefined,
-        cooking_time: cookingTime || undefined
-      }
+	useEffect(() => {
+		fetchTags()
+		fetchIngredients()
+	}, [fetchTags, fetchIngredients])
 
-      const createdPost = await blogAPI.createPost(postData)
-      navigate(`/posts/${createdPost.id}`)
-    } catch (err) {
-      setError('Ошибка при создании поста')
-      console.error(err)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+	const handleChange = (
+		e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+	) => {
+		const { name, value } = e.target
+		setFormData(prev => ({ ...prev, [name]: value }))
+	}
 
-  if (isLoading) {
-    return <LoadingSpinner fullPage />
-  }
+	const handleTagChange = (e: ChangeEvent<HTMLInputElement>) => {
+		const id = Number(e.target.value)
+		setFormData(prev => ({
+			...prev,
+			tag_ids: e.target.checked
+				? [...(prev.tag_ids || []), id]
+				: (prev.tag_ids || []).filter(t => t !== id),
+		}))
+	}
 
-  return (
-    <div className={styles.page}>
-      
-      <main className={styles.container}>
-        <h1 className={styles.title}>Создать новый пост</h1>
-        
-        {error && <div className={styles.error}>{error}</div>}
+	const handleCoverImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0]
+		if (file) {
+			setCoverImage(file)
+			const reader = new FileReader()
+			reader.onloadend = () => {
+				setCoverPreview(reader.result as string)
+			}
+			reader.readAsDataURL(file)
+		}
+	}
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Тип поста */}
-          <div className={styles.formSection}>
-            <h2 className={styles.sectionTitle}>Тип контента</h2>
-            <div className={styles.radioGroup}>
-              <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  value="recipe"
-                  checked={postType === 'recipe'}
-                  onChange={() => setPostType('recipe')}
-                  className={styles.radioInput}
-                />
-                <span className={styles.radioCustom}></span>
-                Рецепт
-              </label>
-              <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  value="article"
-                  checked={postType === 'article'}
-                  onChange={() => setPostType('article')}
-                  className={styles.radioInput}
-                />
-                <span className={styles.radioCustom}></span>
-                Статья
-              </label>
-            </div>
-          </div>
+	const addIngredient = () => {
+		setIngredientsInput(prev => [
+			...prev,
+			{ ingredient: 0, amount: '', unit: '' },
+		])
+	}
 
-          {/* Основная информация */}
-          <div className={styles.formSection}>
-            <h2 className={styles.sectionTitle}>Основная информация</h2>
-            
-            <div className={styles.formGroup}>
-              <label htmlFor="title" className={styles.label}>
-                Заголовок*
-              </label>
-              <input
-                id="title"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className={styles.input}
-                required
-                minLength={5}
-                maxLength={100}
-              />
-            </div>
+	const updateIngredient = (
+		index: number,
+		field: keyof IngredientInput,
+		value: string | number
+	) => {
+		setIngredientsInput(prev => {
+			const updated = [...prev]
+			updated[index] = { ...updated[index], [field]: value }
+			return updated
+		})
+	}
 
-            <div className={styles.formGroup}>
-              <label htmlFor="excerpt" className={styles.label}>
-                Краткое описание*
-              </label>
-              <textarea
-                id="excerpt"
-                value={excerpt}
-                onChange={(e) => setExcerpt(e.target.value)}
-                className={styles.textarea}
-                rows={3}
-                required
-                minLength={20}
-                maxLength={200}
-              />
-            </div>
+	const removeIngredient = (index: number) => {
+		setIngredientsInput(prev => prev.filter((_, i) => i !== index))
+	}
 
-            <div className={styles.formGroup}>
-              <label htmlFor="content" className={styles.label}>
-                Содержание*
-              </label>
-              <textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className={styles.textarea}
-                rows={10}
-                required
-                minLength={100}
-              />
-            </div>
+	const addStep = () => {
+		setStepsInput(prev => [
+			...prev,
+			{
+				order: prev.length + 1,
+				description: '',
+				image: null,
+				imagePreview: null,
+			},
+		])
+	}
 
-            <div className={styles.formGroup}>
-              <label htmlFor="cover_image" className={styles.label}>
-                Обложка
-              </label>
-              <input
-                id="cover_image"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
-                className={styles.fileInput}
-              />
-            </div>
-          </div>
+	const updateStep = (
+		index: number,
+		field: keyof StepInput,
+		value: string | File | null
+	) => {
+		setStepsInput(prev => {
+			const updated = [...prev]
+			updated[index] = { ...updated[index], [field]: value }
+			return updated
+		})
+	}
 
-          {/* Теги */}
-          <div className={styles.formSection}>
-            <h2 className={styles.sectionTitle}>Теги</h2>
-            <div className={styles.tagsContainer}>
-              {tags.map(tag => (
-                <label key={tag.id} className={styles.tagItem}>
-                  <input
-                    type="checkbox"
-                    checked={selectedTagIds.includes(tag.id)}
-                    onChange={() => {
-                      setSelectedTagIds(prev =>
-                        prev.includes(tag.id)
-                          ? prev.filter(id => id !== tag.id)
-                          : [...prev, tag.id]
-                      )
-                    }}
-                    className={styles.tagCheckbox}
-                  />
-                  <span 
-                    className={styles.tagLabel}
-                    style={{ backgroundColor: tag.color }}
-                  >
-                    {tag.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
+	const handleStepImageChange = (
+		index: number,
+		e: ChangeEvent<HTMLInputElement>
+	) => {
+		const file = e.target.files?.[0]
+		if (file) {
+			updateStep(index, 'image', file)
+			const reader = new FileReader()
+			reader.onloadend = () => {
+				updateStep(index, 'imagePreview', reader.result as string)
+			}
+			reader.readAsDataURL(file)
+		}
+	}
 
-          {/* Специфичные для рецепта поля */}
-          {postType === 'recipe' && (
-            <>
-              {/* Ингредиенты */}
-              <div className={styles.formSection}>
-                <h2 className={styles.sectionTitle}>Ингредиенты</h2>
-                <div className={styles.ingredientsList}>
-                  {ingredients.map(ingredient => (
-                    <label key={ingredient.id} className={styles.ingredientItem}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTagIds.includes(ingredient.id)}
-                        onChange={() => {
-                          setSelectedTagIds(prev =>
-                            prev.includes(ingredient.id)
-                              ? prev.filter(id => id !== ingredient.id)
-                              : [...prev, ingredient.id]
-                          )
-                        }}
-                      />
-                      {ingredient.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
+	const removeStep = (index: number) => {
+		setStepsInput(prev =>
+			prev
+				.filter((_, i) => i !== index)
+				.map((step, i) => ({ ...step, order: i + 1 }))
+		)
+	}
 
-              {/* Шаги приготовления */}
-              <div className={styles.formSection}>
-                <h2 className={styles.sectionTitle}>Шаги приготовления</h2>
-                <div className={styles.stepsList}>
-                  {recipeSteps.map((step, index) => (
-                    <div key={step.id} className={styles.stepItem}>
-                      <h3>Шаг {index + 1}</h3>
-                      <p>{step.description}</p>
-                      {step.image && (
-                        <img 
-                          src={step.image} 
-                          alt={`Шаг ${index + 1}`} 
-                          className={styles.stepImage}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+	const handleSubmit = async (e: FormEvent) => {
+		e.preventDefault()
+		setLocalError('')
 
-              {/* Дополнительная информация */}
-              <div className={styles.formSection}>
-                <h2 className={styles.sectionTitle}>Дополнительно</h2>
-                <div className={styles.gridRow}>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="calories" className={styles.label}>
-                      Калории
-                    </label>
-                    <input
-                      id="calories"
-                      type="number"
-                      value={calories || ''}
-                      onChange={(e) => 
-                        setCalories(e.target.value ? parseInt(e.target.value) : null)
-                      }
-                      className={styles.input}
-                      min={0}
-                    />
-                  </div>
+		if (!formData.title || !formData.excerpt || !formData.content) {
+			setLocalError('Заполните все обязательные поля.')
+			return
+		}
 
-                  <div className={styles.formGroup}>
-                    <label htmlFor="cooking_time" className={styles.label}>
-                      Время приготовления (мин)
-                    </label>
-                    <input
-                      id="cooking_time"
-                      type="number"
-                      value={cookingTime || ''}
-                      onChange={(e) => 
-                        setCookingTime(e.target.value ? parseInt(e.target.value) : null)
-                      }
-                      className={styles.input}
-                      min={0}
-                    />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+		if (
+			formData.post_type === 'recipe' &&
+			ingredientsInput.some(ing => !ing.ingredient || !ing.amount)
+		) {
+			setLocalError(
+				'Все ингредиенты должны иметь выбранный ингредиент и количество.'
+			)
+			return
+		}
 
-          {/* Кнопка отправки */}
-          <div className={styles.submitSection}>
-            <button 
-              type="submit" 
-              className={styles.submitButton}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Создание...' : 'Создать пост'}
-            </button>
-          </div>
-        </form>
-      </main>
-    </div>
-  )
+		if (
+			formData.post_type === 'recipe' &&
+			stepsInput.some(step => !step.description)
+		) {
+			setLocalError('Все шаги рецепта должны иметь описание.')
+			return
+		}
+
+		try {
+			const postData: PostCreate = {
+				post_type: formData.post_type || 'recipe',
+				status: formData.status || 'draft',
+				title: formData.title || '',
+				excerpt: formData.excerpt || '',
+				content: formData.content || '',
+				cover_image: coverImage,
+				tag_ids: formData.tag_ids || [],
+				ingredient_data: ingredientsInput.map(ing => ({
+					ingredient_id: ing.ingredient,
+					quantity: `${ing.amount}${ing.unit ? ' ' + ing.unit : ''}`.trim(),
+				})),
+				step_data: stepsInput.map(step => ({
+					order: step.order,
+					description: step.description,
+					image: step.image || undefined,
+				})),
+				calories: formData.calories ? Number(formData.calories) : null,
+				cooking_time: formData.cooking_time
+					? Number(formData.cooking_time)
+					: null,
+			}
+
+			await createPost(postData)
+			alert('Пост успешно создан!')
+		} catch (err) {
+			setLocalError('Не удалось создать пост. Попробуйте снова.')
+		}
+	}
+
+	if (!user) {
+		return <div className={styles.loading}>Загрузка данных пользователя...</div>
+	}
+
+	return (
+		<div className={styles.container}>
+			<h1 className={styles.title}>Создание нового поста</h1>
+
+			<form onSubmit={handleSubmit} className={styles.form}>
+				{/* Тип поста - радио кнопки */}
+				<div className={styles.inputGroup}>
+					<label className={styles.inputLabel}>Тип поста</label>
+					<div className={styles.radioGroup}>
+						<label
+							className={`${styles.radioLabel} ${
+								formData.post_type === 'recipe' ? styles.active : ''
+							}`}
+						>
+							<input
+								type='radio'
+								name='post_type'
+								value='recipe'
+								checked={formData.post_type === 'recipe'}
+								onChange={handleChange}
+								disabled={loading}
+							/>
+							<span className={styles.radioCircle}></span>
+							Рецепт
+						</label>
+						<label
+							className={`${styles.radioLabel} ${
+								formData.post_type === 'article' ? styles.active : ''
+							}`}
+						>
+							<input
+								type='radio'
+								name='post_type'
+								value='article'
+								checked={formData.post_type === 'article'}
+								onChange={handleChange}
+								disabled={loading}
+							/>
+							<span className={styles.radioCircle}></span>
+							Статья
+						</label>
+					</div>
+				</div>
+
+				{/* Заголовок */}
+				<div className={styles.inputGroup}>
+					<label className={styles.inputLabel}>Заголовок</label>
+					<input
+						type='text'
+						name='title'
+						value={formData.title}
+						onChange={handleChange}
+						placeholder='Введите заголовок поста'
+						className={styles.input}
+						disabled={loading}
+						required
+					/>
+				</div>
+
+				{/* Краткое описание */}
+				<div className={styles.inputGroup}>
+					<label className={styles.inputLabel}>Краткое описание</label>
+					<textarea
+						name='excerpt'
+						value={formData.excerpt}
+						onChange={handleChange}
+						placeholder='Введите краткое описание поста'
+						className={styles.textarea}
+						disabled={loading}
+						required
+					/>
+				</div>
+
+				{/* Основной контент */}
+				<div className={styles.inputGroup}>
+					<label className={styles.inputLabel}>Основной контент</label>
+					<textarea
+						name='content'
+						value={formData.content}
+						onChange={handleChange}
+						placeholder='Введите содержание поста'
+						className={styles.textarea}
+						disabled={loading}
+						required
+					/>
+				</div>
+
+				{/* Обложка */}
+				<div className={styles.inputGroup}>
+					<label className={styles.inputLabel}>Обложка поста</label>
+					<div className={styles.coverUpload}>
+						<label className={styles.coverLabel}>
+							<input
+								type='file'
+								accept='image/*'
+								onChange={handleCoverImageChange}
+								className={styles.coverInput}
+								disabled={loading}
+							/>
+							<div
+								className={`${styles.coverWrapper} ${
+									coverPreview ? styles.loaded : ''
+								}`}
+							>
+								<img
+									src={coverPreview || '/empty-post.png'}
+									alt='Обложка'
+									className={styles.cover}
+									onError={e => {
+										;(e.target as HTMLImageElement).src = '/empty-post.png'
+									}}
+								/>
+								<div className={styles.coverOverlay}>
+									{loading ? (
+										<span className={styles.spinner}></span>
+									) : (
+										<span className={styles.coverEditText}>Загрузить</span>
+									)}
+								</div>
+							</div>
+						</label>
+					</div>
+				</div>
+
+				{/* Теги */}
+				<div className={styles.inputGroup}>
+					<label className={styles.inputLabel}>Теги</label>
+					<div className={styles.tagList}>
+						{tags.map((tag: Tag) => (
+							<label
+								key={tag.id}
+								className={`${styles.tagItem} ${
+									formData.tag_ids?.includes(tag.id) ? styles.selected : ''
+								}`}
+								style={{
+									backgroundColor: tag.color || 'transparent',
+									color: tag.color ? '#fff' : 'inherit',
+								}}
+							>
+								<input
+									type='checkbox'
+									value={tag.id}
+									checked={formData.tag_ids?.includes(tag.id)}
+									onChange={handleTagChange}
+									disabled={loading}
+								/>
+								{tag.name}
+							</label>
+						))}
+					</div>
+				</div>
+
+				{/* Ингредиенты (только для рецепта) */}
+				{formData.post_type === 'recipe' && (
+					<>
+						<div className={styles.inputGroup}>
+							<label className={styles.inputLabel}>Ингредиенты</label>
+							{ingredientsInput.map((ing, index) => (
+								<div key={index} className={styles.ingredientRow}>
+									<div className={styles.selectWrapper}>
+										<select
+											value={ing.ingredient}
+											onChange={e =>
+												updateIngredient(index, 'ingredient', e.target.value)
+											}
+											className={styles.input}
+											disabled={loading}
+										>
+											<option value=''>Выберите ингредиент</option>
+											{ingredients.map((item: Ingredient) => (
+												<option key={item.id} value={item.id}>
+													{item.name}
+												</option>
+											))}
+										</select>
+									</div>
+									<input
+										type='text'
+										value={ing.amount}
+										onChange={e =>
+											updateIngredient(index, 'amount', e.target.value)
+										}
+										placeholder='Количество'
+										className={styles.input}
+										disabled={loading}
+									/>
+									<div className={styles.selectWrapper}>
+										<select
+											value={ing.unit}
+											onChange={e =>
+												updateIngredient(index, 'unit', e.target.value)
+											}
+											className={styles.input}
+											disabled={loading}
+										>
+											{units.map(unit => (
+												<option key={unit} value={unit}>
+													{unit || 'Без единицы'}
+												</option>
+											))}
+										</select>
+									</div>
+									<button
+										type='button'
+										onClick={() => removeIngredient(index)}
+										className={styles.removeButton}
+										disabled={loading}
+									>
+										Удалить
+									</button>
+								</div>
+							))}
+							<button
+								type='button'
+								onClick={addIngredient}
+								className={`${styles.button} ${styles.secondary}`}
+								disabled={loading}
+							>
+								Добавить ингредиент
+							</button>
+						</div>
+
+						{/* Шаги рецепта */}
+						<div className={styles.inputGroup}>
+							<label className={styles.inputLabel}>Шаги рецепта</label>
+							{stepsInput.map((step, index) => (
+								<div key={index} className={styles.stepRow}>
+									<span className={styles.stepOrder}>Шаг {step.order}</span>
+									<textarea
+										value={step.description}
+										onChange={e =>
+											updateStep(index, 'description', e.target.value)
+										}
+										placeholder={`Описание шага ${index + 1}`}
+										className={styles.textarea}
+										disabled={loading}
+										required
+									/>
+									<div className={styles.stepImage}>
+										<label className={styles.coverLabel}>
+											<input
+												type='file'
+												accept='image/*'
+												onChange={e => handleStepImageChange(index, e)}
+												className={styles.coverInput}
+												disabled={loading}
+											/>
+											<div
+												className={`${styles.stepImageWrapper} ${
+													step.imagePreview ? styles.loaded : ''
+												}`}
+											>
+												<img
+													src={step.imagePreview || '/default-avatar.png'}
+													alt={`Шаг ${index + 1}`}
+													className={styles.cover}
+													onError={e => {
+														;(e.target as HTMLImageElement).src =
+															'/default-avatar.png'
+													}}
+												/>
+												<div className={styles.coverOverlay}>
+													{loading ? (
+														<span className={styles.spinner}></span>
+													) : (
+														<span className={styles.coverEditText}>
+															Загрузить изображение
+														</span>
+													)}
+												</div>
+											</div>
+										</label>
+									</div>
+									<button
+										type='button'
+										onClick={() => removeStep(index)}
+										className={styles.removeButton}
+										disabled={loading}
+									>
+										Удалить
+									</button>
+								</div>
+							))}
+							<button
+								type='button'
+								onClick={addStep}
+								className={`${styles.button} ${styles.secondary}`}
+								disabled={loading}
+							>
+								Добавить шаг
+							</button>
+						</div>
+
+						{/* Калории и время приготовления */}
+						<div className={styles.inputGroup}>
+							<label className={styles.inputLabel}>Калории</label>
+							<input
+								type='number'
+								name='calories'
+								value={formData.calories || ''}
+								onChange={handleChange}
+								placeholder='Калории'
+								className={styles.input}
+								disabled={loading}
+								min='0'
+							/>
+						</div>
+						<div className={styles.inputGroup}>
+							<label className={styles.inputLabel}>
+								Время приготовления (мин)
+							</label>
+							<input
+								type='number'
+								name='cooking_time'
+								value={formData.cooking_time || ''}
+								onChange={handleChange}
+								placeholder='Время приготовления'
+								className={styles.input}
+								disabled={loading}
+								min='0'
+							/>
+						</div>
+					</>
+				)}
+
+				{/* Статус */}
+				<div className={styles.inputGroup}>
+					<label className={styles.inputLabel}>Статус</label>
+					<div className={styles.selectWrapper}>
+						<select
+							name='status'
+							value={formData.status}
+							onChange={handleChange}
+							className={styles.input}
+							disabled={loading}
+						>
+							<option value='draft'>Черновик</option>
+							<option value='published'>Опубликовано</option>
+							<option value='archived'>Архивировано</option>
+						</select>
+					</div>
+				</div>
+
+				{(error || localError) && (
+					<div className={styles.error}>{error || localError}</div>
+				)}
+
+				<div className={styles.buttons}>
+					<button
+						type='submit'
+						className={`${styles.button} ${styles.primary}`}
+						disabled={loading}
+					>
+						{loading ? (
+							<span className={styles.spinner}></span>
+						) : (
+							'Создать пост'
+						)}
+					</button>
+				</div>
+			</form>
+		</div>
+	)
 }

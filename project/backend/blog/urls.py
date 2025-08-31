@@ -1,6 +1,7 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import PostViewSet, AdminPostViewSet, CommentViewSet, TagViewSet, IngredientViewSet, RecipeStepViewSet
+
+from .views import AdminPostViewSet, CommentViewSet, IngredientViewSet, PostIngredientCreateView, PostViewSet, RecipeStepCreateView, TagViewSet
 
 router = DefaultRouter()
 router.register(r'posts', PostViewSet, basename='post')
@@ -10,21 +11,28 @@ router.register(r'ingredients', IngredientViewSet, basename='ingredient')
 router.register(r'comments', CommentViewSet, basename='comment')
 
 custom_urlpatterns = [
-    path('posts/<int:post_pk>/comments/', 
-         CommentViewSet.as_view({'get': 'list', 'post': 'create'}),
-         name='post-comments'),
-    path('posts/<int:post_pk>/likes/',
+    path(
+        'posts/<int:post_pk>/comments/',
+        CommentViewSet.as_view({'get': 'list', 'post': 'create'}),
+        name='post-comments'
+    ),
+    # при желании можно временно оставить старый маршрут для совместимости:
+    # path(
+    #     'posts/<int:pk>/comments/',
+    #     CommentViewSet.as_view({'get': 'list', 'post': 'create'}),
+    #     name='post-comments-legacy'
+    # ),
+    path('posts/<int:pk>/likes/',
          PostViewSet.as_view({'post': 'like'}),
          name='post-like'),
     path('admin/posts/<int:pk>/status/',
          AdminPostViewSet.as_view({'patch': 'status'}),
          name='admin-post-status'),
-    path('posts/<int:post_pk>/steps/', 
-         RecipeStepViewSet.as_view({'get': 'list', 'post': 'create'}),
-         name='post-steps'),
-    path('posts/<int:post_pk>/steps/<int:pk>/', 
-         RecipeStepViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}),
-         name='post-step-detail'),
+    path('posts/<int:post_id>/ingredients/', PostIngredientCreateView.as_view(), name='post-add-ingredient'),
+    path('posts/<int:post_id>/steps/', RecipeStepCreateView.as_view(), name='post-add-steps-bulk'),
+    path('posts/<int:pk>/views/',
+         PostViewSet.as_view({'post': 'view'}),
+         name='post-view'),
 ]
 
 urlpatterns = [

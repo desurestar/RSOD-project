@@ -5,6 +5,14 @@
 	font-size: 18px;
 }
 
+.heading {
+	margin: 0 0 1.5rem;
+	font-size: 36px;
+	font-weight: 600;
+	text-align: center;
+	color: var(--color-primary);
+}
+
 .content {
 	display: flex;
 	gap: 2rem;

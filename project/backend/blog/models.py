@@ -1,23 +1,25 @@
 from django.db import models
 from django.utils.text import slugify
+
 from users.models import CustomUser
+
 
 class Tag(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, blank=True)
     color = models.CharField(max_length=7, blank=True)
-    
+
     def save(self, *args, **kwargs):
-        if not self.slug: 
+        if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return self.name
 
 class Ingredient(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    
+
     def __str__(self):
         return self.name
 
@@ -26,11 +28,11 @@ class RecipeStep(models.Model):
     order = models.PositiveIntegerField()
     description = models.TextField()
     image = models.ImageField(upload_to='posts/steps/', blank=True, null=True)
-    
+
     class Meta:
         ordering = ['order']
         unique_together = ('post', 'order')
-    
+
     def __str__(self):
         return f'Step {self.order} for {self.post.title}'
 
@@ -44,7 +46,7 @@ class Post(models.Model):
         ('published', 'Published'),
         ('archived', 'Archived'),
     ]
-    
+
     post_type = models.CharField(
         max_length=10,
         choices=POST_TYPE_CHOICES,
@@ -65,9 +67,9 @@ class Post(models.Model):
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='posts')
     tags = models.ManyToManyField(Tag, related_name='posts', blank=True)
     ingredients = models.ManyToManyField(
-        Ingredient, 
+        Ingredient,
         through='PostIngredient',
-        related_name='posts', 
+        related_name='posts',
         blank=True
     )
     liked_by = models.ManyToManyField(CustomUser, related_name='liked_posts', blank=True)
@@ -91,7 +93,7 @@ class PostIngredient(models.Model):
         unique_together = ('post', 'ingredient', 'quantity')
 
     def __str__(self):
-        return f"{self.ingredient.name} - {self.quantity}"
+        return f'{self.ingredient.name} - {self.quantity}'
 
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
@@ -101,4 +103,4 @@ class Comment(models.Model):
     parent_comment = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
 
     def __str__(self):
-        return f"Comment by {self.author.username}"
+        return f'Comment by {self.author.username}'

@@ -59,6 +59,7 @@ export const Profile: React.FC = () => {
 						data = posts.filter(post => post.author.id === user.id)
 						break
 					case 'liked':
+						console.log(posts)
 						// Фильтруем посты, которые лайкнул пользователь
 						data = posts.filter(post => post.is_liked)
 						break
@@ -128,12 +129,9 @@ export const Profile: React.FC = () => {
 			<div className={styles.profileHeader}>
 				<div className={styles.avatarWrapper}>
 					<img
-						src={user.avatar_url}
+						src={user.avatar_url || '/default-avatar.png'}
 						alt={`Аватар ${user.username}`}
 						className={styles.avatar}
-						// onError={(e) => {
-						//   (e.target as HTMLImageElement).src = '/';
-						// }}
 					/>
 				</div>
 

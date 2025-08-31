@@ -1,86 +1,201 @@
+/* PostPage.module.css */
+
+/* Container now only arranges tiles */
 .postPage {
-	max-width: 950px;
+	max-width: 900px;
 	margin: 0 auto;
-	padding: 2rem 1rem;
-	background-color: var(--color-card-bg);
-	border-radius: 16px;
-	box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	padding: 1.5rem 0 2rem;
 }
 
+/* Shared card style (was previously on .postPage) */
+.card {
+	background-color: var(--color-card-bg);
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+	padding: 1.5rem;
+	font-family: var(--font-main);
+	color: #333;
+}
+
+.postCard {
+	/* inherits from .card */
+}
+
+.commentsCard {
+	/* inherits from .card */
+}
+
+/* Title styling */
 .title {
-	font-size: 2rem;
 	color: var(--color-primary);
+	font-size: 2rem;
+	font-weight: 700;
 	margin-bottom: 1rem;
 	text-align: center;
 }
 
+/* Meta information */
 .meta {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	margin-bottom: 1rem;
+	color: #666;
 	font-size: 0.9rem;
-	color: #555;
 }
 
+/* Author info */
 .authorInfo {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
-	color: var(--color-primary);
-	font-weight: 600;
 }
 
+/* Avatar */
 .avatar {
-	width: 32px;
-	height: 32px;
+	width: 40px;
+	height: 40px;
 	border-radius: 50%;
 	object-fit: cover;
 }
 
+/* Date */
 .date {
 	color: #999;
-	font-size: 0.85rem;
 }
 
+/* Tags container */
+.tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+/* Individual tag */
+.tag {
+	padding: 0.3rem 0.6rem;
+	border-radius: 18px;
+	font-size: 0.85rem;
+	font-weight: 500;
+	color: #fff; /* Assuming light text on colored background */
+	transition: background-color 0.2s ease;
+}
+
+/* Cover image */
 .coverImage {
 	width: 100%;
-	max-height: 400px;
+	height: auto;
+	max-height: 500px;
 	object-fit: cover;
 	border-radius: 12px;
-
-	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+	margin-bottom: 1.5rem;
 }
 
+/* Stats container */
 .stats {
 	display: flex;
 	justify-content: space-between;
-	align-items: center;
-	background-color: var(--color-card-bg);
-	padding: 1rem;
-	border-radius: 12px;
 	margin-bottom: 1.5rem;
-	font-size: 0.95rem;
-	color: var(--color-text);
 }
 
+/* Stats group */
 .statsGroup {
 	display: flex;
-	gap: 1.5rem;
+	gap: 1rem;
 	align-items: center;
+	color: #555;
+	font-size: 0.9rem;
 }
 
-.statsGroup div {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	svg {
-		color: var(--color-primary);
-	}
+/* Excerpt */
+.excerpt {
+	font-size: 1.1rem;
+	color: #444;
+	margin-bottom: 2rem;
+	font-style: italic;
+	text-align: center;
 }
 
+/* Ingredients section */
+.ingredientsSection {
+	margin-bottom: 2rem;
+}
+
+/* Section title (for ingredients and steps) */
+.sectionTitle {
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--color-primary);
+	margin-bottom: 1rem;
+	text-align: left;
+}
+
+/* Ingredients list */
+.ingredientsList {
+	list-style-type: disc;
+	padding-left: 1.5rem;
+	font-size: 1rem;
+	color: #333;
+	text-align: left; /* Explicit left alignment */
+}
+
+/* Individual ingredient item */
+.ingredientItem {
+	margin-bottom: 0.5rem;
+}
+
+/* Main content article */
 .content {
-	text-align: justify;
-	color: var(--color-text);
-	line-height: 1.8;
+	line-height: 1.6;
+	font-size: 1rem;
+	color: #333;
+	margin-bottom: 2rem;
+	text-align: left; /* Explicit left alignment */
+}
+
+/* Steps section */
+.stepsSection {
+	margin-bottom: 2rem;
+}
+
+/* Steps list */
+.stepsList {
+	list-style-type: decimal;
+	padding-left: 1.5rem;
+	text-align: left; /* Explicit left alignment */
+}
+
+/* Individual step item */
+.stepItem {
+	margin-bottom: 1.5rem;
+	font-size: 1rem;
+	color: #333;
+}
+
+/* Step description */
+.stepDescription {
+	margin-bottom: 0.5rem;
+	line-height: 1.5;
+}
+
+/* Step image */
+.stepImage {
+	width: 100%;
+	height: auto;
+	max-height: 300px;
+	object-fit: cover;
+	border-radius: 8px;
+}
+
+/* Optional responsive tweak */
+@media (max-width: 600px) {
+	.meta {
+		flex-direction: column;
+		gap: 0.4rem;
+		align-items: flex-start;
+	}
 }
