@@ -16,12 +16,6 @@ custom_urlpatterns = [
         CommentViewSet.as_view({'get': 'list', 'post': 'create'}),
         name='post-comments'
     ),
-    # при желании можно временно оставить старый маршрут для совместимости:
-    # path(
-    #     'posts/<int:pk>/comments/',
-    #     CommentViewSet.as_view({'get': 'list', 'post': 'create'}),
-    #     name='post-comments-legacy'
-    # ),
     path('posts/<int:pk>/likes/',
          PostViewSet.as_view({'post': 'like'}),
          name='post-like'),
@@ -30,9 +24,6 @@ custom_urlpatterns = [
          name='admin-post-status'),
     path('posts/<int:post_id>/ingredients/', PostIngredientCreateView.as_view(), name='post-add-ingredient'),
     path('posts/<int:post_id>/steps/', RecipeStepCreateView.as_view(), name='post-add-steps-bulk'),
-    path('posts/<int:pk>/views/',
-         PostViewSet.as_view({'post': 'view'}),
-         name='post-view'),
 ]
 
 urlpatterns = [

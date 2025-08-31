@@ -181,3 +181,14 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 BASE_URL = 'http://localhost:8000'
+
+# Кэш (для dev можно оставить LocMem)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'post-views-cache',
+    }
+}
+
+# Время (сек) уникальности просмотра (6 часов)
+POST_VIEW_UNIQUE_TTL = 6 * 60 * 60

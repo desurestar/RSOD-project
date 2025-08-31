@@ -1,5 +1,7 @@
+import hashlib
 import json
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Exists, F, OuterRef
@@ -106,18 +108,22 @@ class PostViewSet(viewsets.ModelViewSet):
         detail=True,
         methods=['post'],
         permission_classes=[permissions.AllowAny],
-        authentication_classes=[]
+        authentication_classes=[],
+        url_path='views'  # теперь роут: /posts/<id>/views/
     )
     def view(self, request, pk=None):
         post = self.get_object()
+        ttl = getattr(settings, 'POST_VIEW_UNIQUE_TTL', 21600)
         if request.user.is_authenticated:
             viewer_id = f'u{request.user.id}'
         else:
-            ip = request.META.get('REMOTE_ADDR', '')
+            ip = (request.META.get('HTTP_X_FORWARDED_FOR','').split(',')[0].strip()
+                  or request.META.get('REMOTE_ADDR',''))
             ua = request.META.get('HTTP_USER_AGENT', '')
-            viewer_id = f'a{hash(ip + ua)}'
+            fp_raw = f'{ip}:{ua}'
+            viewer_id = 'a' + hashlib.sha256(fp_raw.encode()).hexdigest()[:32]
         cache_key = f'pv:{post.id}:{viewer_id}'
-        if cache.add(cache_key, 1, timeout=21600):
+        if cache.add(cache_key, 1, timeout=ttl):
             Post.objects.filter(id=post.id).update(views_count=F('views_count') + 1)
             post.refresh_from_db(fields=['views_count'])
         return Response({'views': post.views_count})

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FaFire } from 'react-icons/fa'
 import { FiClock, FiEye, FiHeart } from 'react-icons/fi'
 import { useParams } from 'react-router-dom'
@@ -17,6 +17,7 @@ export const PostPage: React.FC = () => {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 	const [likePending, setLikePending] = useState(false)
+	const viewSentRef = useRef(false)
 
 	// Callback to load post and comments asynchronously
 	const load = useCallback(async () => {
@@ -43,6 +44,19 @@ export const PostPage: React.FC = () => {
 	useEffect(() => {
 		load()
 	}, [load])
+
+	// Отправка события просмотра после успешной загрузки поста (один раз)
+	useEffect(() => {
+		if (post && !viewSentRef.current) {
+			viewSentRef.current = true
+			blogAPI
+				.viewPost(post.id)
+				.then(r => {
+					setPost(p => (p ? { ...p, views_count: r.views } : p))
+				})
+				.catch(console.warn)
+		}
+	}, [post])
 
 	// Handler for liking/unliking the post
 	const handleLike = async () => {
