@@ -60,18 +60,15 @@ export const PostPage: React.FC = () => {
 
 	// Handler for liking/unliking the post
 	const handleLike = async () => {
-		if (!post || likePending) return // Prevent if no post or pending
+		if (!post || likePending) return
 		try {
-			setLikePending(true) // Start pending
-			const { likes } = await blogAPI.likePost(post.id) // API call to like
-			// Update post likes and liked status
-			setPost(prev =>
-				prev ? { ...prev, likes_count: likes, is_liked: !prev.is_liked } : prev
-			)
+			setLikePending(true)
+			const { likes, is_liked } = await blogAPI.likePost(post.id)
+			setPost(prev => (prev ? { ...prev, likes_count: likes, is_liked } : prev))
 		} catch (e) {
-			console.error(e) // Log error
+			console.error(e)
 		} finally {
-			setLikePending(false) // End pending
+			setLikePending(false)
 		}
 	}
 

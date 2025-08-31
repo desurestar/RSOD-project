@@ -80,36 +80,35 @@ class PostViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=['post'],
-        permission_classes=[permissions.AllowAny],
-        authentication_classes=[],
+        permission_classes=[IsAuthenticated],
         url_path='likes'
     )
     def like(self, request, pk=None):
-        if not request.user.is_authenticated:
-            return Response({'detail': 'Authentication credentials were not provided.'},
-                            status=status.HTTP_401_UNAUTHORIZED)
         post = self.get_object()
         user = request.user
         with transaction.atomic():
             if post.liked_by.filter(id=user.id).exists():
                 post.liked_by.remove(user)
-                post.likes_count = F('likes_count') - 1
+                # безопасно уменьшаем (не даём < 0)
+                Post.objects.filter(id=post.id, likes_count__gt=0).update(
+                    likes_count=F('likes_count') - 1
+                )
                 is_liked = False
             else:
                 post.liked_by.add(user)
-                post.likes_count = F('likes_count') + 1
+                Post.objects.filter(id=post.id).update(
+                    likes_count=F('likes_count') + 1
+                )
                 is_liked = True
-            post.save(update_fields=['likes_count'])
             post.refresh_from_db(fields=['likes_count'])
-            likes_total = post.likes_count
-        return Response({'likes': likes_total, 'is_liked': is_liked})
+        return Response({'likes': post.likes_count, 'is_liked': is_liked})
 
     @action(
         detail=True,
         methods=['post'],
         permission_classes=[permissions.AllowAny],
-        authentication_classes=[],
-        url_path='views'  # теперь роут: /posts/<id>/views/
+        # ВАЖНО: не отключаем authentication_classes, чтобы JWT распознался
+        url_path='views'
     )
     def view(self, request, pk=None):
         post = self.get_object()

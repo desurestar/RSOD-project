@@ -75,6 +75,19 @@
 	margin: 1rem 0;
 }
 
+.imagePlaceholder {
+	width: 100%;
+	aspect-ratio: 16/9;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, #f2f6f5, #e2ece8);
+	color: var(--color-primary);
+	font-weight: 600;
+	font-size: 0.9rem;
+	border-radius: 10px;
+}
+
 .content {
 	padding: 1rem 0;
 }
@@ -124,23 +137,31 @@
 .likeButton {
 	background: none;
 	border: none;
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	gap: 0.25rem;
 	padding: 0;
-	font: inherit;
-	color: #555;
-	transition: transform 0.15s ease, color 0.15s ease;
-}
-
-.likeButton:hover {
-	transform: scale(1.06);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	color: var(--color-primary);
+	font: inherit;
+	transition: color 0.18s, transform 0.18s;
 }
 
-.likeButton.liked {
+.likeButton:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.likeButton:hover:not(:disabled) {
 	color: crimson;
+}
+
+.liked {
+	color: crimson;
+}
+
+.likeIcon {
+	transition: transform 0.15s;
 }
 
 .authorName {

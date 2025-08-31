@@ -23,7 +23,7 @@ export const blogAPI = {
 	},
 
 	likePost: async (id: number) => {
-		const response = await api.post<{ likes: number }>(
+		const response = await api.post<{ likes: number; is_liked: boolean }>(
 			`blog/posts/${id}/likes/`
 		)
 		return response.data
