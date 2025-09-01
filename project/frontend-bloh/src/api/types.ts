@@ -54,6 +54,8 @@ export interface Post {
 	calories?: number | null
 	cooking_time?: number | null
 	is_liked?: boolean
+	ingredients?: PostIngredient[]
+	steps?: RecipeStep[]
 }
 
 export interface PostCreate {

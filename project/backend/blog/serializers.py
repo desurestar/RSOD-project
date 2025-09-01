@@ -60,7 +60,8 @@ class PostSerializer(serializers.ModelSerializer):
     )
     is_liked = serializers.SerializerMethodField()
     likes_count = serializers.IntegerField(read_only=True)
-    steps = RecipeStepSerializer(many=True, read_only=True)  # relies on related_name='steps'
+    steps = RecipeStepSerializer(many=True, read_only=True)
+    ingredients = PostIngredientSerializer(source='postingredient_set', many=True, read_only=True)  # <-- исправлено
 
     class Meta:
         model = Post
@@ -68,11 +69,11 @@ class PostSerializer(serializers.ModelSerializer):
             'id','post_type','status','title','excerpt','content','cover_image',
             'created_at','updated_at','author','tags','tag_ids','likes_count',
             'comments_count','views_count','calories','cooking_time','is_liked',
-            'steps'
+            'steps','ingredients'
         ]
         read_only_fields = [
             'id','created_at','updated_at','author','likes_count',
-            'comments_count','views_count','is_liked','tags','steps'
+            'comments_count','views_count','is_liked','tags','steps','ingredients'
         ]
 
     def get_is_liked(self, obj):
@@ -132,7 +133,7 @@ class PostSerializer(serializers.ModelSerializer):
             instance.steps.all().delete()
             for index, step in enumerate(steps_data):
                 step_image = request.FILES.get(f'step_images_{index}') if request else None
-                RecipeStep.create(
+                RecipeStep.objects.create(  # <-- исправлено
                     post=instance,
                     order=step.get('order'),
                     description=step.get('description'),

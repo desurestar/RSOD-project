@@ -51,7 +51,13 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Post.objects.all()
+        queryset = (Post.objects.all()
+                    .select_related('author')
+                    .prefetch_related(
+                        'tags',
+                        'steps',
+                        'postingredient_set__ingredient'  # <-- исправлено
+                    ))
 
         # Фильтр по типу поста (?post_type=article|recipe)
         post_type = self.request.query_params.get('post_type')
