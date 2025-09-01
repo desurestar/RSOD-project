@@ -106,6 +106,7 @@ SIMPLE_JWT = {
     # дальше – стандартные значения
 }
 
+
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 

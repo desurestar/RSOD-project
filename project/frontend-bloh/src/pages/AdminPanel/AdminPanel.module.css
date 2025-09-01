@@ -1,277 +1,571 @@
 .container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+	padding: 2rem 1.5rem 3rem;
+	max-width: 1260px;
+	margin: 0 auto;
+	font-family: var(--font-main);
+	color: var(--color-text);
+}
+
+/* Новая «шапка» */
+.panelHeader {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.65rem;
+	text-align: center;
+	margin-bottom: 1.4rem;
+}
+
+.heading {
+	margin: 0;
+	font-size: 2.1rem;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+	color: var(--color-primary);
+	text-align: center;
+}
+
+.subheading {
+	text-align: center;
+	max-width: 640px;
+	margin: 0 auto;
+	font-size: 0.95rem;
+	line-height: 1.35;
+	color: #5a4d30;
+	opacity: 0.85;
+}
+
+/* Sticky Tabs */
+.tabsWrapper {
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	background: #fff6e2;
+	border: 1px solid rgba(8, 59, 16, 0.12);
+	box-shadow: 0 4px 10px -6px rgba(0, 0, 0, 0.12);
+	padding: 0.4rem 0.5rem;
+	border-radius: 18px;
+	margin-bottom: 1.35rem;
 }
 
 .tabs {
-  margin-bottom: 2rem;
-  background-color: #f5f5f5;
-  border-radius: 8px 8px 0 0;
+	min-height: 0;
+}
+
+.tabs :global(.MuiTabs-flexContainer) {
+	gap: 0.45rem;
+}
+
+.tabs :global(.MuiTab-root) {
+	text-transform: none;
+	font-weight: 600;
+	font-family: var(--font-main);
+	letter-spacing: 0.4px;
+	font-size: 0.9rem;
+	padding: 0.55rem 1.15rem;
+	min-height: 42px;
+	border-radius: 12px;
+	transition: background 0.25s, color 0.25s, box-shadow 0.25s;
+	color: var(--color-primary);
+}
+
+.tabs :global(.MuiTab-root:hover) {
+	background: var(--color-primary-light);
+}
+
+.tabs :global(.Mui-selected) {
+	background: var(--color-button);
+	color: var(--color-primary) !important;
+	box-shadow: none;
+}
+
+.tabs :global(.MuiTabs-indicator) {
+	height: 0; /* скрываем линию, используем фон */
 }
 
 .tabContent {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	background: var(--color-card-bg);
+	border: 1px solid rgba(8, 59, 16, 0.12);
+	border-radius: 22px;
+	padding: 1.8rem 1.6rem 2.1rem;
+	box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.18);
+	position: relative;
+	overflow: hidden;
+}
+
+.tabContent::before {
+	content: none;
 }
 
 .section {
-  margin-bottom: 2rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.4rem;
 }
 
-.addForm {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
+.section > h2 {
+	font-size: 1.45rem;
+	margin: 0;
+	color: var(--color-primary);
+	font-weight: 700;
+	letter-spacing: 0.5px;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
 }
 
+.section > h2::after {
+	content: '';
+	flex: 1;
+	height: 2px;
+	background: rgba(8, 59, 16, 0.15);
+	opacity: 0.18;
+	border-radius: 2px;
+}
+
+/* Растяжение внутренних блоков */
+.section > * {
+	width: 100%;
+}
+
+/* Поиск */
 .searchForm {
-  margin-bottom: 2rem;
+	width: 100%;
+	display: flex;
+	flex-wrap: nowrap;
+}
+
+.searchInputWrapper {
+	position: relative;
+	width: 100%;
+	flex: 1 1 100%;
+	max-width: none; /* убрали ограничение */
+}
+
+.searchIcon {
+	position: absolute;
+	left: 0.85rem;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 0.95rem;
+	color: #5c553d;
+	opacity: 0.75;
+	pointer-events: none;
 }
 
 .input {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  flex-grow: 1;
-  font-size: 1rem;
-  min-width: 200px;
+	width: 100%;
+	padding: 0.75rem 1rem;
+	border: 1px solid rgba(8, 59, 16, 0.25);
+	background: #fffdf6;
+	border-radius: 14px;
+	font-size: 0.9rem;
+	font-family: var(--font-main);
+	transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
 }
 
-.button {
-  padding: 0.5rem 1.5rem;
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap;
+.input.search {
+	padding-left: 2.55rem;
 }
 
-.button:hover {
-  background-color: var(--color-button-hover);
+.input:focus {
+	outline: none;
+	border-color: var(--color-button);
+	box-shadow: 0 0 0 3px rgba(245, 193, 108, 0.35);
+	background: #fff;
 }
 
-.smallButton {
-  padding: 0.25rem 0.75rem;
-  background-color: #f0f0f0;
-  color: #333;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 0.5rem;
-  font-size: 0.9rem;
+/* Add form (tags / ingredients) */
+/* Однострочная форма добавления */
+.addForm {
+	display: flex; /* добавили */
+	align-items: stretch; /* выровнять по высоте */
+	gap: 0.75rem; /* расстояние между элементами */
+	width: 100%;
+	flex-wrap: nowrap; /* в одну строку на широких экранах */
 }
 
-.smallButton:hover {
-  background-color: #e0e0e0;
-}
-
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.listItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eee;
-}
-
-.listItem div {
-  display: flex;
-  flex-direction: column;
-}
-
-.slug {
-  font-size: 0.8rem;
-  color: #666;
-  margin-top: 0.25rem;
-}
-
-.deleteButton {
-  padding: 0.25rem 0.75rem;
-  background-color: #ff4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.deleteButton:hover {
-  background-color: #cc0000;
-}
-
-.error {
-  color: #ff4444;
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background-color: #ffeeee;
-  border-radius: 4px;
-}
-
-.tableContainer {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th, .table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.table th {
-  background-color: #f5f5f5;
-  font-weight: 500;
-}
-
-.table tr:hover {
-  background-color: #f9f9f9;
-}
-
-.select {
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-}
-
-.colorPicker {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.colorOption {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.colorOption:hover {
-  transform: scale(1.1);
-}
-
-.colorOption.selected {
-  border-color: #333;
-  transform: scale(1.1);
-}
-
-.tagName {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.colorBadge {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.userCell {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.smallAvatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.displayName {
-  font-size: 0.8rem;
-  color: #666;
-}
-
-.checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-/* Адаптивные стили */
-@media (max-width: 768px) {
-  .addForm {
-    flex-direction: column;
-  }
-  
-  .button {
-    width: 100%;
-  }
-  
-  .table th, .table td {
-    padding: 0.5rem;
-  }
+.addForm .input {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .colorPickerContainer {
-  position: relative;
-  display: flex;
-  align-items: center;
+	flex: 0 0 52px; /* фиксированная ширина под цвет */
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .colorPreview {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  border: 2px solid #ddd;
-  cursor: pointer;
-  transition: transform 0.2s;
+	width: 46px;
+	height: 46px;
 }
 
-.colorPreview:hover {
-  transform: scale(1.05);
+.addForm .button {
+	flex: 0 0 auto;
+	white-space: nowrap;
 }
 
 .colorPickerPopup {
-  position: absolute;
-  top: 50px;
-  left: 0;
-  z-index: 100;
-  background: white;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	position: absolute;
+	top: 56px;
+	left: 0;
+	z-index: 50;
+	background: #fffaf0;
+	padding: 1rem 1rem 0.9rem;
+	border: 1px solid rgba(8, 59, 16, 0.18);
+	border-radius: 18px;
+	box-shadow: 0 18px 42px -12px rgba(0, 0, 0, 0.35);
 }
 
 .colorValue {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  text-align: center;
-  color: #666;
+	margin-top: 0.65rem;
+	font-size: 0.7rem;
+	font-family: monospace;
+	letter-spacing: 0.4px;
+	background: #fff3da;
+	border: 1px solid rgba(8, 59, 16, 0.18);
+	padding: 0.3rem 0.55rem;
+	border-radius: 7px;
+	display: inline-block;
 }
 
-/* Адаптация для мобильных */
-@media (max-width: 768px) {
-  .colorPickerPopup {
-    left: -100px;
-  }
+/* Кнопки */
+.button,
+.editButton,
+.deleteButton {
+	border: none;
+	cursor: pointer;
+	font-family: var(--font-main);
+}
+
+.button {
+	padding: 0.75rem 1.4rem;
+	background: var(--color-button);
+	color: var(--color-primary);
+	box-shadow: 0 3px 10px -4px rgba(0, 0, 0, 0.15);
+	border-radius: 14px;
+	font-weight: 600;
+	font-size: 0.85rem;
+	letter-spacing: 0.5px;
+	transition: transform 0.2s, box-shadow 0.25s, background 0.25s;
+}
+
+.button:hover {
+	background: var(--color-button-hover);
+	box-shadow: 0 5px 14px -6px rgba(0, 0, 0, 0.18);
+}
+
+.button:active {
+	transform: translateY(0);
+}
+
+.editButton,
+.deleteButton {
+	font-size: 0.7rem;
+	padding: 0.55rem 0.85rem;
+	border-radius: 10px;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	box-shadow: none;
+	background: #fff6e8;
+	border: 1px solid rgba(8, 59, 16, 0.15);
+	transition: background 0.18s, transform 0.18s, box-shadow 0.25s;
+}
+
+.editButton:hover {
+	background: #ffedcc;
+}
+
+.deleteButton {
+	background: #ffe8e8;
+}
+
+.deleteButton:hover {
+	background: #ffd7d7;
+}
+
+/* Таблица */
+.tableContainer {
+	border: 1px solid rgba(8, 59, 16, 0.18);
+	border-radius: 22px;
+	overflow: hidden;
+	background: #fff9ed;
+	box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.25),
+		0 2px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	font-size: 0.8rem;
+}
+
+.table th,
+.table td {
+	padding: 0.75rem 0.95rem;
+	border-bottom: 1px solid rgba(8, 59, 16, 0.12);
+	vertical-align: middle;
+}
+
+.table thead th {
+	background: #ffe3a5;
+	font-size: 0.65rem;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	color: var(--color-primary);
+	position: relative;
+}
+
+.table tbody tr:nth-child(even) {
+	background: #fff5e1;
+}
+
+.table tbody tr:hover {
+	background: #ffeecc;
+}
+
+.postTitle {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	font-weight: 600;
+	color: var(--color-primary);
+}
+
+.postThumbnail {
+	width: 58px;
+	height: 42px;
+	object-fit: cover;
+	border-radius: 10px;
+	border: 1px solid rgba(8, 59, 16, 0.2);
+	background: #fff;
+}
+
+.statusSelect {
+	padding: 0.4rem 0.65rem;
+	font-size: 0.7rem;
+	border-radius: 10px;
+	border: 1px solid rgba(8, 59, 16, 0.25);
+	background: #fffdf6;
+	cursor: pointer;
+	font-family: var(--font-main);
+	letter-spacing: 0.5px;
+}
+
+.statusSelect:focus {
+	outline: 2px solid var(--color-button);
+	outline-offset: 2px;
+}
+
+.statusSelect[data-status='published'] {
+	background: #ffd887;
+}
+
+.statusSelect[data-status='draft'] {
+	background: #dddddd;
+}
+
+.statusSelect[data-status='archived'] {
+	background: #ececec;
+}
+
+/* Actions cell */
+.actions {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+/* Аватары / пользователи */
+.userCell {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+}
+
+.avatar {
+	width: 42px;
+	height: 42px;
+	border-radius: 14px;
+	object-fit: cover;
+	border: 2px solid #fff;
+	box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.35);
+}
+
+.smallAvatar {
+	width: 38px;
+	height: 38px;
+	border-radius: 12px;
+	object-fit: cover;
+	border: 2px solid #fff;
+	box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.35);
+}
+
+.displayName {
+	font-size: 0.6rem;
+	letter-spacing: 0.7px;
+	text-transform: uppercase;
+	color: #876a24;
+	font-weight: 600;
+	margin-top: 2px;
+}
+
+.checkbox {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--color-button);
+	cursor: pointer;
+}
+
+/* Списки (теги и ингредиенты) */
+.list {
+	list-style: none;
+	padding: 0;
+	margin: 0.4rem 0 0;
+	max-width: 860px;
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+	width: 100%;
+	max-width: none; /* убрали ограничение */
+}
+
+.listItem {
+	width: 100%;
+	background: #fff8e7;
+	border: 1px solid rgba(8, 59, 16, 0.15);
+	box-shadow: 0 3px 8px -6px rgba(0, 0, 0, 0.15);
+	padding: 0.9rem 1.05rem;
+	border-radius: 20px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1.2rem;
+	transition: transform 0.25s, box-shadow 0.25s, background 0.25s;
+}
+
+.listItem:hover {
+	transform: translateY(-3px);
+	background: #ffedcc;
+	box-shadow: 0 5px 14px -8px rgba(0, 0, 0, 0.18);
+}
+
+.tagName {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	font-weight: 600;
+	font-size: 0.95rem;
+	color: var(--color-primary);
+}
+
+.tagMeta {
+	font-size: 0.65rem;
+	margin-top: 0.25rem;
+	color: #6c5b2c;
+	letter-spacing: 0.4px;
+}
+
+.colorCode {
+	background: #fff3da;
+	border: 1px solid rgba(8, 59, 16, 0.15);
+	border-radius: 8px;
+	padding: 0.25rem 0.5rem;
+	font-family: monospace;
+	font-size: 0.65rem;
+	letter-spacing: 0.5px;
+}
+
+.colorBadge {
+	width: 22px;
+	height: 22px;
+	border-radius: 8px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+	position: relative;
+	flex-shrink: 0;
+}
+
+.colorBadge::after {
+	content: none;
+}
+
+/* Ошибки */
+.error {
+	background: #fff2f2;
+	border: 1px solid #f5b6b6;
+	color: #7f1a1a;
+	padding: 0.9rem 1.1rem;
+	border-radius: 14px;
+	font-size: 0.8rem;
+	font-weight: 600;
+	letter-spacing: 0.4px;
+	box-shadow: 0 3px 12px -6px rgba(127, 26, 26, 0.4);
+}
+
+/* Responsive tweaks */
+@media (max-width: 980px) {
+	.tabContent {
+		padding: 1.6rem 1.35rem 2rem;
+	}
+	.heading {
+		font-size: 1.9rem;
+	}
+	.addForm {
+		gap: 0.75rem;
+	}
+}
+
+@media (max-width: 760px) {
+	.addForm {
+		flex-wrap: wrap;
+	}
+	.colorPickerContainer {
+		flex: 0 0 auto;
+		order: 2;
+	}
+	.addForm .button {
+		order: 3;
+	}
+}
+
+@media (max-width: 720px) {
+	.tabsWrapper {
+		border-radius: 16px;
+	}
+	.searchInputWrapper {
+		max-width: 100%;
+	}
+	.addForm {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.addForm .input {
+		width: 100%;
+	}
+	.listItem {
+		flex-direction: column;
+		align-items: flex-start;
+		padding: 1rem 1rem 1.1rem;
+	}
+	.actions {
+		gap: 0.4rem;
+	}
+}
+
+/* Accessibility focus */
+.button:focus-visible,
+.editButton:focus-visible,
+.deleteButton:focus-visible,
+.statusSelect:focus-visible,
+.input:focus-visible {
+	outline: 2px solid var(--color-button);
+	outline-offset: 2px;
+	border-radius: 8px;
 }

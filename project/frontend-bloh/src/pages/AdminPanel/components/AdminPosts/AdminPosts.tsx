@@ -81,13 +81,16 @@ export const AdminPosts = () => {
 			{error && <div className={styles.error}>{error}</div>}
 
 			<div className={styles.searchForm}>
-				<input
-					type='text'
-					value={searchTerm}
-					onChange={e => setSearchTerm(e.target.value)}
-					placeholder='Поиск по названию, автору или тегам'
-					className={styles.input}
-				/>
+				<div className={styles.searchInputWrapper}>
+					<span className={styles.searchIcon}>🔍</span>
+					<input
+						type='text'
+						value={searchTerm}
+						onChange={e => setSearchTerm(e.target.value)}
+						placeholder='Поиск: название / автор / тег'
+						className={`${styles.input} ${styles.search}`}
+					/>
+				</div>
 			</div>
 
 			<div className={styles.tableContainer}>
@@ -126,6 +129,7 @@ export const AdminPosts = () => {
 										value={post.status}
 										onChange={e => handleUpdateStatus(post.id, e.target.value)}
 										className={styles.statusSelect}
+										data-status={post.status}
 									>
 										<option value='draft'>Черновик</option>
 										<option value='published'>Опубликован</option>
@@ -134,21 +138,25 @@ export const AdminPosts = () => {
 								</td>
 								<td>{new Date(post.created_at).toLocaleDateString()}</td>
 								<td>
-									<button
-										onClick={() => {
-											setEditingPost(post)
-											setShowEditModal(true)
-										}}
-										className={styles.editButton}
-									>
-										Редактировать
-									</button>
-									<button
-										onClick={() => handleDeletePost(post.id)}
-										className={styles.deleteButton}
-									>
-										Удалить
-									</button>
+									<div className={styles.actions}>
+										<button
+											onClick={() => {
+												setEditingPost(post)
+												setShowEditModal(true)
+											}}
+											className={styles.editButton}
+										>
+											✏️
+											<span style={{ letterSpacing: '.4px' }}>Редакт.</span>
+										</button>
+										<button
+											onClick={() => handleDeletePost(post.id)}
+											className={styles.deleteButton}
+										>
+											🗑
+											<span style={{ letterSpacing: '.4px' }}>Удалить</span>
+										</button>
+									</div>
 								</td>
 							</tr>
 						))}
