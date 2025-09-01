@@ -1,39 +1,182 @@
 .card {
 	display: flex;
-	align-items: center;
+	align-items: stretch; /* было flex-start */
 	gap: 1rem;
 	background-color: var(--color-card-bg);
 	border-radius: 12px;
-	padding: 1rem;
+	padding: 1rem 1.1rem;
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-	transition: transform 0.2s ease;
+	transition: transform 0.2s ease, box-shadow 0.25s ease;
 	text-decoration: none;
 	color: inherit;
+	position: relative;
+	overflow: hidden;
 }
 
-.card:hover {
-	transform: scale(1.02);
+.card.hasImage {
+	padding: 0;
+	gap: 0;
 }
 
-.image {
-	width: 80px;
-	height: 80px;
+.card.hasImage .image {
+	width: 140px;
+	flex: 0 0 140px;
+	height: 100%;
 	object-fit: cover;
-	border-radius: 8px;
-	flex-shrink: 0;
+	border-radius: 0;
+	display: block;
 }
 
-.content {
-	flex-grow: 1;
+.card.hasImage .body {
+	padding: 1rem 1.1rem;
+}
+
+.card.noImage .body {
+	padding: 0; /* используем общие паддинги самой карточки */
+}
+
+.body {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 120px; /* базовая высота для вертикального центрирования */
+	position: relative;
+}
+
+.mainContent {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: center; /* центрируем заголовок и описание по вертикали */
+	min-width: 0;
 }
 
 .title {
-	font-size: 1.1rem;
-	color: var(--color-primary);
-	margin-bottom: 0.3rem;
+	margin: 0 0 0.4rem;
+	line-height: 1.2;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
 }
 
 .description {
-	font-size: 0.85rem;
+	margin: 0;
+	line-height: 1.25;
+	opacity: 0.85;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+/* Нижняя панель со статистикой прижата к низу справа */
+.metaBar {
+	margin-top: auto; /* чтобы панель всегда прижималась вниз */
+	padding-top: 0.55rem;
+	display: flex;
+	align-items: center;
+	gap: 1.1rem;
+	font-size: 0.72rem;
 	color: var(--color-text);
+	opacity: 0.9;
+	justify-content: flex-end;
+}
+
+.viewsItem {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	white-space: nowrap;
+}
+
+.likeButton {
+	background: none;
+	border: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0;
+	font: inherit;
+	color: inherit;
+	position: relative;
+	transition: transform 0.18s ease;
+}
+
+.likeButton:active {
+	transform: scale(0.92);
+}
+
+.heart {
+	display: flex;
+	color: var(--color-primary);
+	transition: color 0.25s ease;
+}
+
+.liked .heart {
+	color: crimson;
+}
+
+.pop {
+	animation: mp-pop 0.38s ease;
+}
+
+@keyframes mp-pop {
+	0% {
+		transform: scale(1);
+	}
+	40% {
+		transform: scale(1.35);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+/* Ограничим текст (title/description) в две строки, если нужно */
+.title {
+	margin: 0 0 0.4rem;
+	line-height: 1.2;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.description {
+	margin: 0;
+	line-height: 1.25;
+	opacity: 0.85;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+/* Адаптив */
+@media (max-width: 520px) {
+	.card {
+		padding: 0.85rem 0.9rem;
+	}
+	.card.hasImage {
+		padding: 0;
+	}
+	.card.hasImage .image {
+		width: 120px;
+		flex: 0 0 120px;
+	}
+	.card.hasImage .body {
+		padding: 0.85rem 0.9rem;
+	}
+	.mainContent {
+		justify-content: center;
+	}
+	.metaBar {
+		gap: 0.85rem;
+	}
 }

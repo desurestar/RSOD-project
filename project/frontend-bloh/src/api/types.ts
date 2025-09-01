@@ -50,10 +50,10 @@ export interface Post {
 	tags: Tag[]
 	likes_count: number
 	comments_count: number
-	views_count: number
+	views_count?: number // добавлено
+	is_liked?: boolean // добавлено
 	calories?: number | null
 	cooking_time?: number | null
-	is_liked?: boolean
 	ingredients?: PostIngredient[]
 	steps?: RecipeStep[]
 }
