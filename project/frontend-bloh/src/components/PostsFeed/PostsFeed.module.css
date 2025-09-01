@@ -31,7 +31,13 @@
 .authorInfo {
 	display: flex;
 	align-items: center;
-	gap: 0.5rem;
+	gap: 8px;
+	cursor: pointer;
+	text-decoration: none;
+	outline: none;
+	/* Базовый цвет имени автора — не меняется при hover карточки */
+	color: var(--color-text);
+	transition: color 0.18s ease;
 }
 
 .authorInfoBtn {
@@ -160,10 +166,43 @@
 	color: crimson;
 }
 
+.liked:hover {
+	color: crimson; /* не менять на hover */
+}
+
 .likeIcon {
 	transition: transform 0.15s;
 }
 
 .authorName {
-	font-weight: 500;
+	font-weight: 600;
+	line-height: 1.2;
+	/* Зафиксируем цвет, чтобы наследование при .card:hover не перекрашивало */
+	color: inherit;
+}
+
+.card:hover .authorInfo .authorName {
+	/* Отменяем возможное переопределение, если было глобально */
+	color: var(--color-text);
+}
+
+.authorInfo:hover .authorName,
+.authorInfo:focus .authorName,
+.authorInfo:focus-visible .authorName {
+	color: var(--color-primary);
+}
+
+.authorInfo:focus-visible {
+	box-shadow: 0 0 0 3px rgba(0, 128, 64, 0.35);
+	border-radius: 6px;
+}
+
+.authorInfo img {
+	flex-shrink: 0;
+}
+
+@media (hover: hover) {
+	.authorInfo:hover img {
+		transform: translateY(-1px);
+	}
 }

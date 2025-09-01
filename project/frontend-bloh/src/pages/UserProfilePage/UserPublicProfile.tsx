@@ -1,95 +1,151 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Footer } from '../../components/Footer/Footer'
-import { Header } from '../../components/Heared/Header'
-import { mockPosts } from '../../mock/mockData'
-import { mockUsers } from '../../mock/mockUser'
-import { User } from '../../types/auth.types'
-import { Post } from '../../types/post.types'
+import { Post, User } from '../../api/types'
+import { userAPI } from '../../api/user'
+import { PostsFeed } from '../../components/PostsFeed/PostsFeed'
+import { useAuthStore } from '../../stores/authStore'
 import styles from './UserPublicProfile.module.css'
 
 export const UserPublicProfile: React.FC = () => {
 	const { username } = useParams<{ username: string }>()
+	const { user: me, isAuthenticated } = useAuthStore()
+	const [profile, setProfile] = useState<User | null>(null)
+	const [posts, setPosts] = useState<Post[]>([])
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
 	const [search, setSearch] = useState('')
-	const [isSubscribed, setIsSubscribed] = useState(false) // ⬅️ Новое
+	const [submitting, setSubmitting] = useState(false)
+	const [isSubscribed, setIsSubscribed] = useState(false)
+	const requestIdRef = useRef(0)
 
-	const user: User | undefined = mockUsers.find(u => u.username === username)
-	const userPosts: Post[] = mockPosts.filter(
-		post => post.author.username === username
+	useEffect(() => {
+		if (!username) return
+		const currentReq = ++requestIdRef.current
+		setLoading(true)
+		setError(null)
+		;(async () => {
+			try {
+				const u = await userAPI.getByUsername(username)
+				if (requestIdRef.current !== currentReq) return
+				setProfile(u)
+				setIsSubscribed(!!u.is_subscribed)
+				const userPosts = await userAPI.getUserPosts(u.id)
+				if (requestIdRef.current !== currentReq) return
+				setPosts(userPosts)
+			} catch {
+				if (requestIdRef.current === currentReq)
+					setError('Не удалось загрузить профиль')
+			} finally {
+				if (requestIdRef.current === currentReq) setLoading(false)
+			}
+		})()
+	}, [username])
+
+	const filteredPosts = useMemo(
+		() =>
+			posts.filter(p => p.title.toLowerCase().includes(search.toLowerCase())),
+		[posts, search]
 	)
 
-	const filteredPosts = useMemo(() => {
-		return userPosts.filter(post =>
-			post.title.toLowerCase().includes(search.toLowerCase())
-		)
-	}, [search, userPosts])
+	const canSubscribe = !!(
+		isAuthenticated &&
+		profile &&
+		me &&
+		me.id !== profile.id
+	)
 
-	if (!user) return <p>Пользователь не найден</p>
-
-	const handleToggleSubscribe = () => {
-		setIsSubscribed(prev => !prev)
-		// тут можно вызвать API-запрос
+	const handleToggleSubscribe = async () => {
+		if (!profile || !canSubscribe || submitting) return
+		setSubmitting(true)
+		try {
+			if (isSubscribed) {
+				await userAPI.unfollow(profile.id)
+				setIsSubscribed(false)
+				setProfile(p =>
+					p
+						? { ...p, subscribers_count: Math.max(0, p.subscribers_count - 1) }
+						: p
+				)
+			} else {
+				await userAPI.follow(profile.id)
+				setIsSubscribed(true)
+				setProfile(p =>
+					p ? { ...p, subscribers_count: p.subscribers_count + 1 } : p
+				)
+			}
+		} finally {
+			setSubmitting(false)
+		}
 	}
 
+	if (loading) return <div className={styles.loading}>Загрузка профиля...</div>
+	if (error || !profile)
+		return (
+			<div className={styles.error}>{error || 'Пользователь не найден'}</div>
+		)
+
 	return (
-		<div className={styles.pageContainer}>
-			<Header />
-			<div className={styles.wrapper}>
-				<div className={styles.header}>
+		<div className={styles.profileContainer}>
+			<div className={styles.profileHeader}>
+				<div className={styles.avatarWrapper}>
 					<img
-						src={user.avatarUrl}
-						alt={user.displayName || user.username}
+						src={profile.avatar_url || '/default-avatar.png'}
+						alt={profile.display_name || profile.username}
 						className={styles.avatar}
 					/>
-					<div className={styles.info}>
-						<h1>{user.displayName || user.username}</h1>
-						<span className={styles.username}>@{user.username}</span>
-						{user.email && <p className={styles.bio}>{user.email}</p>}
-						<div className={styles.stats}>
-							<span>Постов: {user.postsCount || 0}</span>
-							<span>Подписчики: {user.subscribersCount || 0}</span>
-							<span>Подписки: {user.subscriptionsCount || 0}</span>
-						</div>
-					</div>
-
-					{/* 👇 Кнопка подписки */}
-					<button
-						className={styles.subscribeButton}
-						onClick={handleToggleSubscribe}
-					>
-						{isSubscribed ? 'Отписаться' : 'Подписаться'}
-					</button>
 				</div>
+				<div className={styles.profileInfo}>
+					<h1 className={styles.displayName}>
+						{profile.display_name || profile.username}
+					</h1>
+					<p className={styles.username}>@{profile.username}</p>
+					<p className={styles.email}>{profile.email}</p>
+					<div className={styles.actions}>
+						{canSubscribe && (
+							<button
+								className={styles.subscribeButton}
+								disabled={submitting}
+								onClick={handleToggleSubscribe}
+							>
+								{isSubscribed ? 'Отписаться' : 'Подписаться'}
+							</button>
+						)}
+					</div>
+				</div>
+			</div>
 
-				<h2 className={styles.postsTitle}>Посты</h2>
+			<div className={styles.statsContainer}>
+				<div className={styles.statItem}>
+					<span className={styles.statNumber}>
+						{profile.subscribers_count ?? 0}
+					</span>
+					<span className={styles.statLabel}>Подписчики</span>
+				</div>
+				<div className={styles.statItem}>
+					<span className={styles.statNumber}>
+						{profile.subscriptions_count ?? 0}
+					</span>
+					<span className={styles.statLabel}>Подписки</span>
+				</div>
+			</div>
+
+			<div className={styles.tabContent}>
+				<h2 className={styles.tabTitle}>Посты пользователя ({posts.length})</h2>
 
 				<input
 					type='text'
 					value={search}
 					onChange={e => setSearch(e.target.value)}
-					className={styles.searchInput}
 					placeholder='Поиск по постам...'
+					className={styles.searchInput}
 				/>
 
-				{filteredPosts.length > 0 ? (
-					<div className={styles.postsGrid}>
-						{filteredPosts.map(post => (
-							<div key={post.id} className={styles.postCard}>
-								<img
-									src={post.coverImage}
-									alt={post.title}
-									className={styles.postImage}
-								/>
-								<h3>{post.title}</h3>
-								<p>{post.excerpt}</p>
-							</div>
-						))}
-					</div>
+				{filteredPosts.length === 0 ? (
+					<div className={styles.emptyMessage}>Постов пока нет</div>
 				) : (
-					<p className={styles.noPosts}>Постов пока нет.</p>
+					<PostsFeed posts={filteredPosts} />
 				)}
 			</div>
-			<Footer className={styles.footer} />
 		</div>
 	)
 }

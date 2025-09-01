@@ -10,6 +10,7 @@ export interface User {
 	subscriptions_count: number
 	posts_count: number
 	liked_posts_count: number
+	is_subscribed?: boolean // <-- добавлено
 }
 
 export interface Tag {

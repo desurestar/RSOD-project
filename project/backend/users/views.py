@@ -2,6 +2,7 @@ from django.core.files.images import get_image_dimensions
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -142,16 +143,25 @@ class UserFollowingView(generics.ListAPIView):
         user = get_object_or_404(CustomUser, pk=self.kwargs['user_id'])
         return user.subscriptions.all()
 
+class UserSubscribeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, user_id):
+        target = get_object_or_404(CustomUser, pk=user_id)
+        if target.id == request.user.id:
+            raise ValidationError({'detail': 'Cannot subscribe to yourself'})
+        request.user.subscriptions.add(target)
+        return Response({'subscribed': True}, status=200)
+
 class UserUnsubscribeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, user_id):
-        user_to_unsubscribe = get_object_or_404(CustomUser, pk=user_id)
-        request.user.subscriptions.remove(user_to_unsubscribe)
-        return Response(
-            {'status': 'unsubscribed'},
-            status=status.HTTP_200_OK
-        )
+        target = get_object_or_404(CustomUser, pk=user_id)
+        if target.id == request.user.id:
+            raise ValidationError({'detail': 'Cannot unsubscribe from yourself'})
+        request.user.subscriptions.remove(target)
+        return Response({'subscribed': False}, status=200)
 
 class UserListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()
@@ -169,7 +179,12 @@ class UserPostsView(generics.ListAPIView):
 
     def get_queryset(self):
         user = get_object_or_404(CustomUser, pk=self.kwargs['user_id'])
-        return Post.objects.filter(author=user).order_by('-created_at')
+        qs = Post.objects.filter(author=user).order_by('-created_at')
+        # для чужих показываем только опубликованные
+        req_user = self.request.user
+        if not (req_user.is_authenticated and (req_user.is_admin or req_user.id == user.id)):
+            qs = qs.filter(status='published')
+        return qs
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -189,3 +204,33 @@ class UserLikedPostsView(generics.ListAPIView):
         ctx = super().get_serializer_context()
         ctx['request'] = self.request
         return ctx
+
+class UserByUsernameView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, username):
+        user = get_object_or_404(
+            CustomUser.objects.annotate(
+                subscribers_count=Count('subscribers', distinct=True),
+                subscriptions_count=Count('subscriptions', distinct=True),
+                posts_count=Count('posts', distinct=True),
+                liked_posts_count=Count('liked_posts', distinct=True),
+            ),
+            username=username
+        )
+        return Response(UserSerializer(user, context={'request': request}).data)
+
+class UserPublicDetailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, user_id):
+        user = get_object_or_404(
+            CustomUser.objects.annotate(
+                subscribers_count=Count('subscribers', distinct=True),
+                subscriptions_count=Count('subscriptions', distinct=True),
+                posts_count=Count('posts', distinct=True),
+                liked_posts_count=Count('liked_posts', distinct=True),
+            ),
+            pk=user_id
+        )
+        return Response(UserSerializer(user, context={'request': request}).data)

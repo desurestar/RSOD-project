@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { FaFire } from 'react-icons/fa'
 import { FiClock, FiEye, FiHeart } from 'react-icons/fi'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { blogAPI } from '../../api/blog'
 import { Post } from '../../api/types'
 import styles from './PostsFeed.module.css'
@@ -19,6 +19,7 @@ export const PostsFeed: React.FC<PostsFeedProps> = ({
 }) => {
 	const [items, setItems] = useState(posts)
 	const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
+	const navigate = useNavigate()
 
 	useEffect(() => {
 		setItems(posts)
@@ -117,17 +118,36 @@ export const PostsFeed: React.FC<PostsFeedProps> = ({
 		<div className={styles.feed}>
 			{items.map(post => {
 				const hasRecipeStats = !!(post.cooking_time || post.calories)
+				const authorUsername =
+					(post.author as any)?.username || (post.author as any)?.id
 				return (
 					<Link to={`/posts/${post.id}`} key={post.id} className={styles.card}>
 						<div className={styles.header}>
-							<div className={styles.authorInfo}>
+							<div
+								className={styles.authorInfo}
+								role='link'
+								tabIndex={0}
+								onClick={e => {
+									e.preventDefault()
+									e.stopPropagation()
+									if (authorUsername) navigate(`/profile/${authorUsername}`)
+								}}
+								onKeyDown={e => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault()
+										e.stopPropagation()
+										if (authorUsername) navigate(`/profile/${authorUsername}`)
+									}
+								}}
+								title='Открыть профиль автора'
+							>
 								<img
 									src={getAuthorAvatar(post)}
 									alt={getAuthorName(post)}
 									className={styles.avatar}
 									loading='lazy'
 								/>
-								<span>{getAuthorName(post)}</span>
+								<span className={styles.authorName}>{getAuthorName(post)}</span>
 							</div>
 							<span className={styles.date}>
 								{new Date(post.created_at).toLocaleDateString()}
@@ -221,7 +241,7 @@ export const PostsFeed: React.FC<PostsFeedProps> = ({
 									title={post.is_liked ? 'Убрать лайк' : 'Поставить лайк'}
 									aria-label={post.is_liked ? 'Убрать лайк' : 'Поставить лайк'}
 									className={`${styles.likeButton} ${
-										post.is_liked ? styles.likeActive : ''
+										post.is_liked ? styles.liked : ''
 									}`}
 								>
 									<FiHeart />

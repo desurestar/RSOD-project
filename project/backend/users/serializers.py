@@ -45,22 +45,28 @@ class UserSerializer(serializers.ModelSerializer):
     subscriptions_count = serializers.IntegerField(read_only=True)
     posts_count = serializers.IntegerField(read_only=True)
     liked_posts_count = serializers.IntegerField(read_only=True)
+    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'display_name',
-            'avatar_url', 'is_admin', 'role',
-            'subscribers_count', 'subscriptions_count',
-            'posts_count', 'liked_posts_count'
+            'id','username','email','display_name','avatar_url','role',
+            'is_admin','subscribers_count','subscriptions_count',
+            'posts_count','liked_posts_count','is_subscribed'
         ]
-        read_only_fields = ['id', 'username', 'is_admin']
 
     def get_avatar_url(self, obj):
         request = self.context.get('request')
-        if obj.avatar:
+        if obj.avatar and request:
             return request.build_absolute_uri(obj.avatar.url)
         return None
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated or user.id == obj.id:
+            return False
+        return obj.subscribers.filter(pk=user.pk).exists()
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
