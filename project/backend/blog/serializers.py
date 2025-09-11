@@ -18,10 +18,18 @@ class IngredientSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class RecipeStepSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = RecipeStep
-        fields = '__all__'
+        fields = ['id','post','order','description','image','image_url']
         read_only_fields = ('post',)
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None
 
 class PostIngredientSerializer(serializers.ModelSerializer):
     ingredient = IngredientSerializer(read_only=True)
@@ -62,14 +70,15 @@ class PostSerializer(serializers.ModelSerializer):
     likes_count = serializers.IntegerField(read_only=True)
     steps = RecipeStepSerializer(many=True, read_only=True)
     ingredients = PostIngredientSerializer(source='postingredient_set', many=True, read_only=True)  # <-- исправлено
+    cover_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = [
             'id','post_type','status','title','excerpt','content','cover_image',
-            'created_at','updated_at','author','tags','tag_ids','likes_count',
-            'comments_count','views_count','calories','cooking_time','is_liked',
-            'steps','ingredients'
+            'cover_image_url','created_at','updated_at','author','tags','tag_ids',
+            'likes_count','comments_count','views_count','calories','cooking_time',
+            'is_liked','steps','ingredients'
         ]
         read_only_fields = [
             'id','created_at','updated_at','author','likes_count',
@@ -81,6 +90,12 @@ class PostSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return False
         return obj.liked_by.filter(pk=request.user.pk).exists()
+
+    def get_cover_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.cover_image and request:
+            return request.build_absolute_uri(obj.cover_image.url)
+        return None
 
     def create(self, validated_data):
         tag_ids = validated_data.pop('tag_ids', [])
@@ -139,6 +154,16 @@ class PostSerializer(serializers.ModelSerializer):
                     description=step.get('description'),
                     image=step_image
                 )
+        # Удаление обложки
+        request = self.context.get('request')
+        if request:
+            # если фронт прислал явный флаг remove_cover = true
+            remove_cover = request.data.get('remove_cover')
+            if remove_cover in ('true', '1', True):
+                if instance.cover_image:
+                    instance.cover_image.delete(save=False)
+                instance.cover_image = None
+                instance.save(update_fields=['cover_image'])
         return instance
 
 class CommentSerializer(serializers.ModelSerializer):

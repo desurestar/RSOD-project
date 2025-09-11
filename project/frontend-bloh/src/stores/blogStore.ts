@@ -93,9 +93,11 @@ export const useBlogStore = create<BlogState>(set => ({
 			if (step_data?.length) {
 				await blogAPI.createPostSteps(newPost.id, step_data)
 			}
+			// обновим пост целиком (чтобы получить steps/ingredients)
+			const full = await blogAPI.getPost(newPost.id)
 			set(state => ({
-				posts: [newPost, ...state.posts],
-				adminPosts: [newPost, ...state.adminPosts],
+				posts: [full, ...state.posts],
+				adminPosts: [full, ...state.adminPosts],
 				loading: false,
 			}))
 		} catch (e) {

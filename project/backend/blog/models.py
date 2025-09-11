@@ -1,8 +1,19 @@
+import os
+import uuid
+
 from django.db import models
 from django.utils.text import slugify
 
 from users.models import CustomUser
 
+
+def cover_upload_to(instance, filename):
+    base, ext = os.path.splitext(filename)
+    return f'posts/covers/{slugify(base)[:60]}-{uuid.uuid4().hex[:8]}{ext.lower()}'
+
+def step_image_upload_to(instance, filename):
+    base, ext = os.path.splitext(filename)
+    return f'posts/steps/{slugify(base)[:50]}-{uuid.uuid4().hex[:8]}{ext.lower()}'
 
 class Tag(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -27,7 +38,7 @@ class RecipeStep(models.Model):
     post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='steps')
     order = models.PositiveIntegerField()
     description = models.TextField()
-    image = models.ImageField(upload_to='posts/steps/', blank=True, null=True)
+    image = models.ImageField(upload_to=step_image_upload_to, blank=True, null=True)
 
     class Meta:
         ordering = ['order']
@@ -60,7 +71,7 @@ class Post(models.Model):
     title = models.CharField(max_length=255)
     excerpt = models.TextField()
     content = models.TextField()
-    cover_image = models.ImageField(upload_to='posts/covers/', blank=True, null=True)
+    cover_image = models.ImageField(upload_to=cover_upload_to, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

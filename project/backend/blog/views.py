@@ -17,6 +17,7 @@ from core.permissions import IsAdminUserOrReadOnly
 
 from .models import Comment, Ingredient, Post, PostIngredient, RecipeStep, Tag
 from .serializers import CommentSerializer, IngredientSerializer, PostIngredientCreateSerializer, PostSerializer, RecipeStepCreateSerializer, RecipeStepSerializer, TagSerializer
+from .utils import send_new_post_notification
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -81,7 +82,24 @@ class PostViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        post = serializer.save(author=self.request.user)
+        if post.status == 'published':
+            send_new_post_notification(post)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        old_status = instance.status
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        new_instance = serializer.instance
+        if old_status != 'published' and new_instance.status == 'published':
+            send_new_post_notification(new_instance)
+
+        return Response(serializer.data)
 
     @action(
         detail=True,
@@ -142,11 +160,14 @@ class AdminPostViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['patch'])
     def status(self, request, pk=None):
         post = self.get_object()
+        old_status = post.status
         new_status = request.data.get('status')
         if new_status not in dict(Post.STATUS_CHOICES):
             return Response({'detail': 'Invalid status'}, status=400)
         post.status = new_status
         post.save(update_fields=['status'])
+        if old_status != 'published' and new_status == 'published':
+            send_new_post_notification(post)
         return Response(PostSerializer(post, context={'request': request}).data)
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -244,6 +265,11 @@ class RecipeStepCreateView(APIView):
         with transaction.atomic():
             for idx, item in enumerate(serializer.validated_data):
                 image = request.FILES.get(f'step_images_{idx}')
+                if image:
+                    if image.size > 5 * 1024 * 1024:
+                        return Response({'error': 'Step image too large (>5MB)'}, status=400)
+                    if not image.content_type.startswith('image/'):
+                        return Response({'error': 'Invalid step image type'}, status=400)
                 obj = RecipeStep.objects.create(
                     post=post,
                     order=item['order'],
