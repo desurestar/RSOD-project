@@ -1,71 +1,96 @@
-import { useEffect, useState } from 'react'
-import { HexColorPicker } from 'react-colorful'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { blogAPI } from '../../../../api/blog'
 import { Tag } from '../../../../api/types'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner/LoadingSpinner'
 import styles from '../../AdminPanel.module.css'
 
+const PAGE_SIZE = 8
+
 export const AdminTags = () => {
 	const [tags, setTags] = useState<Tag[]>([])
-	const [filteredTags, setFilteredTags] = useState<Tag[]>([])
 	const [searchTerm, setSearchTerm] = useState('')
+	const [debounced, setDebounced] = useState('')
+	const [page, setPage] = useState(1)
+	const [hasNext, setHasNext] = useState(true)
+	const [initialLoading, setInitialLoading] = useState(true)
+	const [loadingMore, setLoadingMore] = useState(false)
+	const [error, setError] = useState<string | null>(null)
 	const [newTagName, setNewTagName] = useState('')
 	const [newTagColor, setNewTagColor] = useState('#FF5733')
-	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
-	const [showColorPicker, setShowColorPicker] = useState(false)
+	const sentinelRef = useRef<HTMLDivElement | null>(null)
 
 	useEffect(() => {
-		fetchTags()
-	}, [])
+		const id = setTimeout(() => setDebounced(searchTerm), 500)
+		return () => clearTimeout(id)
+	}, [searchTerm])
+
+	const loadPage = useCallback(
+		async (reset = false) => {
+			if (reset) {
+				setInitialLoading(true)
+				setPage(1)
+				setHasNext(true)
+			} else {
+				if (!hasNext || loadingMore) return
+				setLoadingMore(true)
+			}
+			try {
+				const res = await blogAPI.getTags({
+					page: reset ? 1 : page,
+					page_size: PAGE_SIZE,
+					search: debounced || undefined,
+				})
+				const list = res.results ?? res
+				if (reset) setTags(list)
+				else setTags(prev => [...prev, ...list])
+				setHasNext(Boolean(res.next))
+				setPage(p => (reset ? 2 : p + 1))
+			} catch {
+				setError('Ошибка загрузки тегов')
+			} finally {
+				if (reset) setInitialLoading(false)
+				setLoadingMore(false)
+			}
+		},
+		[page, debounced, hasNext, loadingMore]
+	)
 
 	useEffect(() => {
-		const filtered = tags.filter(
-			tag =>
-				tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				tag.slug.toLowerCase().includes(searchTerm.toLowerCase())
+		loadPage(true)
+	}, [debounced]) // eslint-disable-line
+
+	useEffect(() => {
+		if (!sentinelRef.current) return
+		const el = sentinelRef.current
+		const obs = new IntersectionObserver(
+			e => {
+				if (e[0].isIntersecting) loadPage(false)
+			},
+			{ rootMargin: '250px' }
 		)
-		setFilteredTags(filtered)
-	}, [searchTerm, tags])
+		obs.observe(el)
+		return () => obs.disconnect()
+	}, [loadPage])
 
-	const fetchTags = async () => {
-		setIsLoading(true)
-		try {
-			const response = await blogAPI.getTags()
-			const tagsData = response.results || response
-			setTags(tagsData)
-			setFilteredTags(tagsData)
-		} catch (err) {
-			setError('Ошибка загрузки тегов')
-			console.error(err)
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	const handleAddTag = async () => {
-		if (!newTagName.trim()) return
-
-		try {
-			const newTag = await blogAPI.createTag({
-				name: newTagName,
-				slug: generateSlug(newTagName),
-				color: newTagColor,
-			})
-
-			setTags([...tags, newTag])
-			setNewTagName('')
-		} catch (err) {
-			setError('Ошибка при добавлении тега')
-			console.error(err)
-		}
-	}
-
-	const generateSlug = (name: string): string => {
-		return name
+	const generateSlug = (name: string) =>
+		name
 			.toLowerCase()
 			.replace(/\s+/g, '-')
 			.replace(/[^\w-]+/g, '')
+
+	const handleAddTag = async () => {
+		if (!newTagName.trim()) return
+		try {
+			const created = await blogAPI.createTag({
+				name: newTagName.trim(),
+				slug: generateSlug(newTagName),
+				color: newTagColor,
+			})
+			setTags(prev => [created, ...prev])
+			setNewTagName('')
+		} catch {
+			/* ignore */
+		}
 	}
 
 	const handleDeleteTag = async (id: number) => {
@@ -78,86 +103,72 @@ export const AdminTags = () => {
 		}
 	}
 
-	if (isLoading) return <LoadingSpinner />
+	if (initialLoading) return <LoadingSpinner />
+	if (error) return <div className={styles.section}>{error}</div>
 
 	return (
 		<div className={styles.section}>
-			<h2>Управление тегами</h2>
-
-			{error && <div className={styles.error}>{error}</div>}
-
-			<div className={styles.searchForm}>
-				<div className={styles.searchInputWrapper}>
-					<span className={styles.searchIcon}>🔍</span>
-					<input
-						type='text'
-						value={searchTerm}
-						onChange={e => setSearchTerm(e.target.value)}
-						placeholder='Поиск по названию или slug'
-						className={`${styles.input} ${styles.search}`}
-					/>
-				</div>
-			</div>
-
-			<div className={styles.addForm}>
+			<h2>Теги</h2>
+			<div className={styles.actionsRow}>
 				<input
-					type='text'
-					value={newTagName}
-					onChange={e => setNewTagName(e.target.value)}
-					placeholder='Название тега'
-					className={styles.input}
+					placeholder='Поиск'
+					value={searchTerm}
+					onChange={e => setSearchTerm(e.target.value)}
+					className={styles.searchInput}
 				/>
-
-				<div className={styles.colorPickerContainer}>
-					<button
-						type='button'
-						className={styles.colorPreview}
-						style={{ backgroundColor: newTagColor }}
-						onClick={() => setShowColorPicker(!showColorPicker)}
-						title='Выбрать цвет'
+				<div className={styles.inlineAdd}>
+					<input
+						placeholder='Новый тег'
+						value={newTagName}
+						onChange={e => setNewTagName(e.target.value)}
+						className={styles.searchInput}
 					/>
-
-					{showColorPicker && (
-						<div className={styles.colorPickerPopup}>
-							<HexColorPicker color={newTagColor} onChange={setNewTagColor} />
-							<div className={styles.colorValue}>{newTagColor}</div>
-						</div>
-					)}
+					<input
+						type='color'
+						value={newTagColor}
+						onChange={e => setNewTagColor(e.target.value)}
+					/>
+					<button onClick={handleAddTag}>Добавить</button>
 				</div>
-
-				<button
-					onClick={handleAddTag}
-					className={styles.button}
-					disabled={!newTagName.trim()}
-				>
-					Добавить
-				</button>
 			</div>
-
 			<ul className={styles.list}>
-				{filteredTags.map(tag => (
-					<li key={tag.id} className={styles.listItem}>
-						<div>
-							<span className={styles.tagName}>
-								<span
-									className={styles.colorBadge}
-									style={{ backgroundColor: tag.color }}
-								/>
-								{tag.name}
-							</span>
-							<div className={styles.tagMeta}>
-								<span className={styles.colorCode}>{tag.color}</span>
-							</div>
-						</div>
-						<button
-							onClick={() => handleDeleteTag(tag.id)}
-							className={styles.deleteButton}
-						>
-							Удалить
-						</button>
-					</li>
-				))}
+				{tags.map(tag => {
+					const color = tag.color
+						? tag.color.startsWith('#')
+							? tag.color
+							: `#${tag.color}`
+						: '#ddd'
+					return (
+						<li key={tag.id} className={styles.listItem}>
+							<span
+								style={{ backgroundColor: color }}
+								className={styles.colorDot}
+								title={color}
+							/>
+							<span>{tag.name}</span>
+							<span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{color}</span>
+							<button
+								onClick={() => handleDeleteTag(tag.id)}
+								className={styles.deleteButton}
+							>
+								Удалить
+							</button>
+						</li>
+					)
+				})}
+				{!tags.length && (
+					<li style={{ padding: 12, textAlign: 'center' }}>Нет данных</li>
+				)}
 			</ul>
+			<div ref={sentinelRef} />
+			{loadingMore && (
+				<div style={{ padding: 12 }}>
+					<LoadingSpinner />
+				</div>
+			)}
+			{!hasNext && tags.length > 0 && (
+				<p style={{ textAlign: 'center', opacity: 0.6 }}>Конец списка</p>
+			)}
 		</div>
 	)
 }

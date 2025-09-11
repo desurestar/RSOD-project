@@ -36,9 +36,15 @@ export const blogAPI = {
 		return response.data
 	},
 
-	getAdminPosts: async () => {
-		const response = await api.get<Post[]>('blog/admin/posts/')
-		return response.data
+	getAdminPosts: async (params: {
+		page?: number
+		page_size?: number
+		search?: string
+	}) => {
+		const r = await api.get<PaginatedResponse<Post>>('blog/admin/posts/', {
+			params,
+		})
+		return r.data
 	},
 
 	createPost: async (
@@ -152,9 +158,9 @@ export const blogAPI = {
 		return response.data
 	},
 
-	getTags: async () => {
-		const response = await api.get<PaginatedResponse<Tag>>('blog/tags/')
-		return response.data.results
+	getTags: async (params?: { page?: number; search?: string }) => {
+		const r = await api.get<PaginatedResponse<Tag>>('blog/tags/', { params })
+		return r.data
 	},
 
 	createTag: async (data: Omit<Tag, 'id'>) => {
@@ -166,11 +172,12 @@ export const blogAPI = {
 		await api.delete(`blog/tags/${id}/`)
 	},
 
-	getIngredients: async () => {
-		const response = await api.get<PaginatedResponse<Ingredient>>(
-			'blog/ingredients/'
+	getIngredients: async (params?: { page?: number; search?: string }) => {
+		const r = await api.get<PaginatedResponse<Ingredient>>(
+			'blog/ingredients/',
+			{ params }
 		)
-		return response.data.results
+		return r.data
 	},
 
 	createIngredient: async (data: Omit<Ingredient, 'id'>) => {
@@ -228,5 +235,19 @@ export const blogAPI = {
 			`auth/users/${userId}/liked/`
 		)
 		return response.data.results
+	},
+	queryPosts: async (params: {
+		post_type?: string
+		page?: number
+		page_size?: number
+		tags?: string
+		max_time?: number | ''
+		max_calories?: number | ''
+		ordering?: string
+	}) => {
+		const response = await api.get<PaginatedResponse<Post>>('blog/posts/', {
+			params,
+		})
+		return response.data
 	},
 }

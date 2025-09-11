@@ -17,25 +17,22 @@ export const Header: React.FC = () => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false)
 	const [authModalOpen, setAuthModalOpen] = useState(false)
 	const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
-	const [searchQuery, setSearchQuery] = useState('')
+	// ...removed search state...
 	const menuRef = useRef<HTMLDivElement>(null)
 	const navigate = useNavigate()
 
-	// Загрузка профиля при монтировании
 	useEffect(() => {
 		if (isAuthenticated) {
 			fetchProfile()
 		}
 	}, [isAuthenticated, fetchProfile])
 
-	// Закрытие меню при клике вне его области
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
 				setIsMenuOpen(false)
 			}
 		}
-
 		document.addEventListener('mousedown', handleClickOutside)
 		return () => document.removeEventListener('mousedown', handleClickOutside)
 	}, [])
@@ -46,13 +43,7 @@ export const Header: React.FC = () => {
 		setIsMenuOpen(false)
 	}
 
-	const handleSearch = (e: React.FormEvent) => {
-		e.preventDefault()
-		if (searchQuery.trim()) {
-			navigate(`/search?query=${encodeURIComponent(searchQuery.trim())}`)
-			setSearchQuery('')
-		}
-	}
+	// ...removed handleSearch...
 
 	const openAuthModal = (mode: 'login' | 'register') => {
 		setAuthMode(mode)
@@ -82,21 +73,7 @@ export const Header: React.FC = () => {
 				</nav>
 
 				<div className={styles.auth}>
-					<form className={styles.searchForm} onSubmit={handleSearch}>
-						<input
-							type='text'
-							className={styles.searchInput}
-							placeholder='Найти...'
-							value={searchQuery}
-							onChange={e => setSearchQuery(e.target.value)}
-						/>
-						<button type='submit' className={styles.searchButton}>
-							<svg className={styles.searchIcon} viewBox='0 0 24 24'>
-								<path d='M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' />
-							</svg>
-						</button>
-					</form>
-
+					{/* ...removed search form... */}
 					{!isAuthenticated ? (
 						<div className={styles.authButtons}>
 							<button

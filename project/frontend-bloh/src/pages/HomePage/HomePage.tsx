@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { blogAPI } from '../../api/blog'
-import { Post, Tag } from '../../api/types'
+import { Post } from '../../api/types'
 import { CreatePostButton } from '../../components/CreatePostButton/CreatePostButton'
 import { FilterSidebar } from '../../components/FilterSidebar/FilterSidebar'
 import { LoadingSpinner } from '../../components/LoadingSpinner/LoadingSpinner'
@@ -9,58 +9,87 @@ import styles from './HomePage.module.css'
 
 export const HomePage: React.FC = () => {
 	const [posts, setPosts] = useState<Post[]>([])
-	const [allTags, setAllTags] = useState<Tag[]>([])
-	const [selectedTags, setSelectedTags] = useState<string[]>([])
 	const [timeFilter, setTimeFilter] = useState<number | ''>('')
 	const [caloriesFilter, setCaloriesFilter] = useState<number | ''>('')
 	const [sortOption, setSortOption] = useState<'relevance' | 'likes' | 'views'>(
 		'relevance'
 	)
-	const [loading, setLoading] = useState(true)
+
+	const [page, setPage] = useState(1)
+	const [hasNext, setHasNext] = useState(true)
+	const [initialLoading, setInitialLoading] = useState(true)
+	const [loadingMore, setLoadingMore] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
-	useEffect(() => {
-		const load = async () => {
+	const sentinelRef = useRef<HTMLDivElement | null>(null)
+	const PAGE_SIZE = 4
+
+	const buildOrdering = () => {
+		if (sortOption === 'likes') return '-likes'
+		if (sortOption === 'views') return '-views'
+		return '-created_at' // бывшая "relevance"
+	}
+
+	const loadPage = useCallback(
+		async (reset = false) => {
+			if (reset) {
+				setInitialLoading(true)
+				setPage(1)
+				setHasNext(true)
+			} else {
+				if (!hasNext || loadingMore) return
+				setLoadingMore(true)
+			}
 			try {
-				setLoading(true)
-				const [recipes, tags] = await Promise.all([
-					blogAPI.getPosts({ post_type: 'recipe' }),
-					blogAPI.getTags(),
-				])
-				setPosts(recipes)
-				setAllTags(tags)
-			} catch (e) {
-				console.error(e)
+				const res = await blogAPI.queryPosts({
+					post_type: 'recipe',
+					page: reset ? 1 : page,
+					page_size: PAGE_SIZE,
+					max_time: timeFilter || undefined,
+					max_calories: caloriesFilter || undefined,
+					ordering: buildOrdering(),
+				})
+				if (reset) {
+					setPosts(res.results)
+				} else {
+					setPosts(prev => [...prev, ...res.results])
+				}
+				setHasNext(Boolean(res.next))
+				setPage(p => (reset ? 2 : p + 1))
+			} catch {
 				setError('Не удалось загрузить рецепты')
 			} finally {
-				setLoading(false)
+				if (reset) setInitialLoading(false)
+				setLoadingMore(false)
 			}
-		}
-		load()
+		},
+		[page, timeFilter, caloriesFilter, sortOption, hasNext, loadingMore]
+	)
+
+	useEffect(() => {
+		loadPage(true)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
-	const filteredSorted = useMemo(() => {
-		let result = posts.filter(p => {
-			const tagMatch =
-				selectedTags.length === 0 ||
-				p.tags.some(t => selectedTags.includes(t.slug))
-			const timeMatch =
-				!timeFilter || (p.cooking_time ?? 0) <= Number(timeFilter)
-			const calMatch =
-				!caloriesFilter || (p.calories ?? 0) <= Number(caloriesFilter)
-			return tagMatch && timeMatch && calMatch
-		})
-		result = result.sort((a, b) => {
-			if (sortOption === 'likes') return b.likes_count - a.likes_count
-			if (sortOption === 'views') return b.views_count - a.views_count
-			const ra = a.tags.filter(t => selectedTags.includes(t.slug)).length
-			const rb = b.tags.filter(t => selectedTags.includes(t.slug)).length
-			return rb - ra
-		})
-		return result
-	}, [posts, selectedTags, timeFilter, caloriesFilter, sortOption])
+	useEffect(() => {
+		loadPage(true)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [timeFilter, caloriesFilter, sortOption])
 
-	if (loading) return <LoadingSpinner />
+	useEffect(() => {
+		if (!sentinelRef.current) return
+		const el = sentinelRef.current
+		const observer = new IntersectionObserver(
+			entries => {
+				if (entries[0].isIntersecting) loadPage(false)
+			},
+			{ rootMargin: '200px' }
+		)
+		observer.observe(el)
+		return () => observer.disconnect()
+	}, [loadPage])
+
+	if (initialLoading) return <LoadingSpinner />
 	if (error)
 		return (
 			<main className={styles.container}>
@@ -74,20 +103,28 @@ export const HomePage: React.FC = () => {
 			<h1 className={styles.heading}>Лента рецептов</h1>
 			<div className={styles.content}>
 				<div className={styles.posts}>
-					<PostsFeed posts={filteredSorted} />
+					<PostsFeed posts={posts} />
+					<div ref={sentinelRef} />
+					{loadingMore && (
+						<div style={{ padding: 16 }}>
+							<LoadingSpinner />
+						</div>
+					)}
+					{!hasNext && posts.length > 0 && (
+						<p style={{ textAlign: 'center', opacity: 0.6, margin: 16 }}>
+							Больше рецептов нет
+						</p>
+					)}
 				</div>
 				<div className={styles.sidebar}>
 					<CreatePostButton />
 					<FilterSidebar
-						selectedTags={selectedTags}
-						setSelectedTags={setSelectedTags}
 						timeFilter={timeFilter}
 						setTimeFilter={setTimeFilter}
 						caloriesFilter={caloriesFilter}
 						setCaloriesFilter={setCaloriesFilter}
 						sortOption={sortOption}
 						setSortOption={setSortOption}
-						recipeTags={allTags.map(t => ({ ...t, color: t.color || '' }))}
 					/>
 				</div>
 			</div>

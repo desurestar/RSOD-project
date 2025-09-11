@@ -10,12 +10,13 @@ from .models import Comment, Ingredient, Post, PostIngredient, RecipeStep, Tag
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = '__all__'
+        fields = ['id', 'name', 'slug', 'color']
+        read_only_fields = ['id', 'slug']
 
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = '__all__'
+        fields = ['id', 'name']
 
 class RecipeStepSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()

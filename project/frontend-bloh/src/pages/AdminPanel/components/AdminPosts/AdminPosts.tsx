@@ -1,48 +1,81 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { blogAPI } from '../../../../api/blog'
 import { Post } from '../../../../api/types'
 import { LoadingSpinner } from '../../../../components/LoadingSpinner/LoadingSpinner'
 import { PostEditModal } from '../../../../components/Modals/PostEditModal/PostEditModal'
 import styles from '../../AdminPanel.module.css'
 
+const PAGE_SIZE = 8
+
 export const AdminPosts = () => {
 	const [posts, setPosts] = useState<Post[]>([])
-	const [filteredPosts, setFilteredPosts] = useState<Post[]>([])
 	const [searchTerm, setSearchTerm] = useState('')
-	const [isLoading, setIsLoading] = useState(true)
+	const [debounced, setDebounced] = useState('')
+	const [page, setPage] = useState(1)
+	const [hasNext, setHasNext] = useState(true)
+	const [initialLoading, setInitialLoading] = useState(true)
+	const [loadingMore, setLoadingMore] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [editingPost, setEditingPost] = useState<Post | null>(null)
 	const [showEditModal, setShowEditModal] = useState(false)
+	const sentinelRef = useRef<HTMLDivElement | null>(null)
 
+	// debounce
 	useEffect(() => {
-		fetchPosts()
-	}, [])
+		const id = setTimeout(() => setDebounced(searchTerm), 600)
+		return () => clearTimeout(id)
+	}, [searchTerm])
 
+	const loadPage = useCallback(
+		async (reset = false) => {
+			if (reset) {
+				setInitialLoading(true)
+				setPage(1)
+				setHasNext(true)
+			} else {
+				if (!hasNext || loadingMore) return
+				setLoadingMore(true)
+			}
+			try {
+				const res = await blogAPI.getAdminPosts({
+					page: reset ? 1 : page,
+					page_size: PAGE_SIZE,
+					search: debounced || undefined,
+				})
+				const list = res.results
+				if (reset) setPosts(list)
+				else setPosts(prev => [...prev, ...list])
+				setHasNext(Boolean(res.next))
+				setPage(p => (reset ? 2 : p + 1))
+			} catch {
+				setError('Ошибка загрузки постов')
+			} finally {
+				if (reset) setInitialLoading(false)
+				setLoadingMore(false)
+			}
+		},
+		[page, debounced, hasNext, loadingMore]
+	)
+
+	// initial + search reset
 	useEffect(() => {
-		const filtered = posts.filter(
-			post =>
-				post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				post.author.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				post.tags.some(tag =>
-					tag.name.toLowerCase().includes(searchTerm.toLowerCase())
-				)
+		loadPage(true)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [debounced])
+
+	// infinite scroll
+	useEffect(() => {
+		if (!sentinelRef.current) return
+		const el = sentinelRef.current
+		const observer = new IntersectionObserver(
+			entries => {
+				if (entries[0].isIntersecting) loadPage(false)
+			},
+			{ rootMargin: '300px' }
 		)
-		setFilteredPosts(filtered)
-	}, [searchTerm, posts])
-
-	const fetchPosts = async () => {
-		setIsLoading(true)
-		try {
-			const response = await blogAPI.getAdminPosts()
-			setPosts(response.results || response)
-			setFilteredPosts(response.results || response)
-		} catch (err) {
-			setError('Ошибка загрузки постов')
-			console.error(err)
-		} finally {
-			setIsLoading(false)
-		}
-	}
+		observer.observe(el)
+		return () => observer.disconnect()
+	}, [loadPage])
 
 	const handleUpdateStatus = async (id: number, status: string) => {
 		try {
@@ -72,27 +105,18 @@ export const AdminPosts = () => {
 		setShowEditModal(false)
 	}
 
-	if (isLoading) return <LoadingSpinner />
+	if (initialLoading) return <LoadingSpinner />
+	if (error) return <div className={styles.section}>{error}</div>
 
 	return (
 		<div className={styles.section}>
 			<h2>Управление постами</h2>
-
-			{error && <div className={styles.error}>{error}</div>}
-
-			<div className={styles.searchForm}>
-				<div className={styles.searchInputWrapper}>
-					<span className={styles.searchIcon}>🔍</span>
-					<input
-						type='text'
-						value={searchTerm}
-						onChange={e => setSearchTerm(e.target.value)}
-						placeholder='Поиск: название / автор / тег'
-						className={`${styles.input} ${styles.search}`}
-					/>
-				</div>
-			</div>
-
+			<input
+				placeholder='Поиск (заголовок / автор / тег)'
+				value={searchTerm}
+				onChange={e => setSearchTerm(e.target.value)}
+				className={styles.searchInput}
+			/>
 			<div className={styles.tableContainer}>
 				<table className={styles.table}>
 					<thead>
@@ -107,7 +131,7 @@ export const AdminPosts = () => {
 						</tr>
 					</thead>
 					<tbody>
-						{filteredPosts.map(post => (
+						{posts.map(post => (
 							<tr key={post.id}>
 								<td>{post.id}</td>
 								<td>
@@ -160,10 +184,25 @@ export const AdminPosts = () => {
 								</td>
 							</tr>
 						))}
+						{!posts.length && (
+							<tr>
+								<td colSpan={7} style={{ textAlign: 'center', padding: 24 }}>
+									Нет данных
+								</td>
+							</tr>
+						)}
 					</tbody>
 				</table>
+				<div ref={sentinelRef} />
+				{loadingMore && (
+					<div style={{ padding: 16 }}>
+						<LoadingSpinner />
+					</div>
+				)}
+				{!hasNext && posts.length > 0 && (
+					<p style={{ textAlign: 'center', opacity: 0.6 }}>Конец списка</p>
+				)}
 			</div>
-
 			{showEditModal && editingPost && (
 				<PostEditModal
 					post={editingPost}

@@ -509,7 +509,141 @@
 	box-shadow: 0 3px 12px -6px rgba(127, 26, 26, 0.4);
 }
 
-/* Responsive tweaks */
+/* Pagination */
+.pagination {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	flex-wrap: wrap;
+	margin-top: 1rem;
+}
+.paginationButton {
+	background: var(--color-primary);
+	border: none;
+	color: #fff;
+	padding: 0.45rem 0.9rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 0.85rem;
+}
+.paginationButton[disabled] {
+	opacity: 0.4;
+	cursor: default;
+}
+.pageNumber {
+	background: var(--color-card-bg);
+	border: 1px solid var(--color-primary);
+	color: var(--color-primary);
+	padding: 0.4rem 0.75rem;
+	border-radius: 4px;
+	cursor: pointer;
+}
+.pageNumber.active {
+	background: var(--color-primary);
+	color: #fff;
+}
+.paginationInfo {
+	font-size: 0.75rem;
+	opacity: 0.7;
+}
+
+/* === Added for components (actionsRow, searchInput, inlineAdd, colorDot) === */
+.actionsRow {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.9rem;
+	align-items: flex-start;
+	width: 100%;
+}
+
+.searchInput {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	border: 1px solid rgba(8, 59, 16, 0.25);
+	background: #fffdf6;
+	border-radius: 14px;
+	font-size: 0.9rem;
+	font-family: var(--font-main);
+	transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+}
+
+.searchInput:focus {
+	outline: none;
+	border-color: var(--color-button);
+	box-shadow: 0 0 0 3px rgba(245, 193, 108, 0.35);
+	background: #fff;
+}
+
+.inlineAdd {
+	display: flex;
+	align-items: stretch;
+	gap: 0.6rem;
+	flex: 1 1 100%;
+	width: 100%;
+}
+
+.inlineAdd > input[type='text'],
+.inlineAdd
+	> input:not([type='color']):not([type='button']):not([type='submit']) {
+	flex: 1 1 auto;
+	width: 100%;
+}
+
+.inlineAdd > input[type='color'] {
+	flex: 0 0 54px;
+	padding: 0;
+	border: 1px solid rgba(8, 59, 16, 0.25);
+	border-radius: 12px;
+	background: #fff;
+	cursor: pointer;
+	height: 46px;
+}
+
+.inlineAdd > button {
+	padding: 0.65rem 1rem;
+	background: var(--color-button);
+	color: var(--color-primary);
+	border: none;
+	border-radius: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	font-size: 0.75rem;
+	letter-spacing: 0.5px;
+	transition: background 0.2s, box-shadow 0.25s;
+	flex: 0 0 auto;
+	align-self: stretch;
+	display: inline-flex;
+	align-items: center;
+}
+
+.inlineAdd > button:hover {
+	background: var(--color-button-hover);
+}
+
+@media (max-width: 760px) {
+	.inlineAdd {
+		flex-wrap: wrap;
+	}
+	.inlineAdd > button {
+		width: 100%;
+	}
+}
+
+/* Mobile adjustments for new rows */
+@media (max-width: 720px) {
+	.actionsRow {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.75rem;
+	}
+	.inlineAdd {
+		flex-wrap: wrap;
+	}
+	.inlineAdd > input {
+		flex: 1 1 140px;
+	}
+}
+
 @media (max-width: 980px) {
 	.tabContent {
 		padding: 1.6rem 1.35rem 2rem;
@@ -557,6 +691,21 @@
 	.actions {
 		gap: 0.4rem;
 	}
+}
+
+/* Fix tag color dot visibility */
+.colorDot {
+	display: inline-block;
+	width: 22px;
+	height: 22px;
+	border-radius: 8px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+	flex-shrink: 0;
+}
+
+/* Optional: ensure fallback if no inline style */
+.colorDot:not([style*='background']) {
+	background: #ddd;
 }
 
 /* Accessibility focus */

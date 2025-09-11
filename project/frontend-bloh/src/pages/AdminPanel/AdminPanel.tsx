@@ -25,10 +25,6 @@ export const AdminPanel = () => {
 			<div className={styles.panelHeader}>
 				<div>
 					<h1 className={styles.heading}>Административная панель</h1>
-					<p className={styles.subheading}>
-						Управление контентом, пользователями, тегами и ингредиентами.
-						Используйте поиск и быстрые действия.
-					</p>
 				</div>
 			</div>
 

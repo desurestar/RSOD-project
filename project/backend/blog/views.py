@@ -4,9 +4,10 @@ import json
 from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Exists, F, OuterRef
+from django.db.models import Count, Exists, F, IntegerField, OuterRef, Q, Value
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import SearchFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -16,54 +17,51 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from core.permissions import IsAdminUserOrReadOnly
 
 from .models import Comment, Ingredient, Post, PostIngredient, RecipeStep, Tag
+from .pagination import AdminPageNumberPagination, SmallPageNumberPagination
 from .serializers import CommentSerializer, IngredientSerializer, PostIngredientCreateSerializer, PostSerializer, RecipeStepCreateSerializer, RecipeStepSerializer, TagSerializer
 from .utils import send_new_post_notification
 
-
-class TagViewSet(viewsets.ModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    authentication_classes = [JWTAuthentication]
-    http_method_names = ['get', 'post', 'delete']
-
-class IngredientViewSet(viewsets.ModelViewSet):
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    authentication_classes = [JWTAuthentication]
-    http_method_names = ['get', 'post', 'delete']
-
-class RecipeStepViewSet(viewsets.ModelViewSet):
-    serializer_class = RecipeStepSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    def get_queryset(self):
-        return RecipeStep.objects.filter(post_id=self.kwargs.get('post_pk'))
-
-    def perform_create(self, serializer):
-        post = Post.objects.get(pk=self.kwargs.get('post_pk'))
-        serializer.save(post=post)
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     authentication_classes = [JWTAuthentication]
+    pagination_class = SmallPageNumberPagination  # <-- добавлено
+    filter_backends = [SearchFilter]
+    search_fields = ['title', 'author__username', 'tags__name']
 
     def get_queryset(self):
         user = self.request.user
+        qp = self.request.query_params
         queryset = (Post.objects.all()
                     .select_related('author')
                     .prefetch_related(
                         'tags',
                         'steps',
-                        'postingredient_set__ingredient'  # <-- исправлено
+                        'postingredient_set__ingredient'
                     ))
 
-        # Фильтр по типу поста (?post_type=article|recipe)
-        post_type = self.request.query_params.get('post_type')
+        # Тип поста
+        post_type = qp.get('post_type')
         if post_type in dict(Post.POST_TYPE_CHOICES):
             queryset = queryset.filter(post_type=post_type)
+
+        # Фильтрация по времени / калориям
+        max_time = qp.get('max_time')
+        if max_time:
+            queryset = queryset.filter(cooking_time__lte=max_time)
+
+        max_cal = qp.get('max_calories')
+        if max_cal:
+            queryset = queryset.filter(calories__lte=max_cal)
+
+        # Теги
+        tags_raw = qp.get('tags')
+        tag_slugs = []
+        if tags_raw:
+            tag_slugs = [t.strip() for t in tags_raw.split(',') if t.strip()]
+            if tag_slugs:
+                queryset = queryset.filter(tags__slug__in=tag_slugs).distinct()
 
         # Аннотация is_liked
         if user.is_authenticated:
@@ -76,8 +74,34 @@ class PostViewSet(viewsets.ModelViewSet):
                 )
             )
 
+        # Аннотация релевантности (число совпавших тегов)
+        if tag_slugs:
+            queryset = queryset.annotate(
+                matched_tags=Count('tags', filter=Q(tags__slug__in=tag_slugs), distinct=True)
+            )
+        else:
+            queryset = queryset.annotate(
+                matched_tags=Value(0, output_field=IntegerField())
+            )
+
+        # Статус (неадмин видит только опубликованные)
         if not user.is_staff:
             queryset = queryset.filter(status='published')
+
+        # Сортировка
+        ordering = qp.get('ordering')  # likes|-likes|views|-views|relevance|-relevance
+        mapping = {
+            'likes': 'likes_count',
+            '-likes': '-likes_count',
+            'views': 'views_count',
+            '-views': '-views_count',
+            'relevance': '-matched_tags',
+            '-relevance': 'matched_tags',
+        }
+        if ordering in mapping:
+            queryset = queryset.order_by(mapping[ordering], '-created_at')
+        else:
+            queryset = queryset.order_by('-created_at')
 
         return queryset
 
@@ -156,6 +180,9 @@ class AdminPostViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+    pagination_class = AdminPageNumberPagination
+    filter_backends = [SearchFilter]
+    search_fields = ['title', 'author__username', 'tags__name']
 
     @action(detail=True, methods=['patch'])
     def status(self, request, pk=None):
@@ -282,4 +309,20 @@ class RecipeStepCreateView(APIView):
             {'steps': RecipeStepSerializer(created_objs, many=True).data},
             status=status.HTTP_201_CREATED
         )
+
+class IngredientViewSet(viewsets.ModelViewSet):
+    queryset = Ingredient.objects.all().order_by('name')
+    serializer_class = IngredientSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUserOrReadOnly]
+    filter_backends = [SearchFilter]
+    search_fields = ['name']
+
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all().order_by('name')
+    serializer_class = TagSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAdminUserOrReadOnly]
+    filter_backends = [SearchFilter]
+    search_fields = ['name']
 

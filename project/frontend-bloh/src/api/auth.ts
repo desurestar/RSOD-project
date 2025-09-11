@@ -71,13 +71,23 @@ export const authAPI = {
 		await api.post(`auth/users/${userId}/unsubscribe/`)
 	},
 
-	getAdminUsers: async () => {
-		const response = await api.get<User[]>('auth/admin/users/')
-		return response.data
+	getAdminUsers: async (params?: {
+		page?: number
+		page_size?: number
+		search?: string
+	}) => {
+		// Было: 'users/admin/' (404)
+		const r = await api.get<PaginatedResponse<User>>('auth/admin/users/', {
+			params,
+		})
+		return r.data
 	},
 
-	updateAdminUser: async (userId: number, data: Partial<User>) => {
-		const response = await api.put<User>(`auth/admin/users/${userId}/`, data)
+	updateAdminUser: async (
+		userId: number,
+		data: Partial<Pick<User, 'role' | 'display_name' | 'email'>>
+	) => {
+		const response = await api.patch<User>(`auth/admin/users/${userId}/`, data)
 		return response.data
 	},
 
