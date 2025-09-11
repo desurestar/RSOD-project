@@ -120,6 +120,13 @@ export const PostsFeed: React.FC<PostsFeedProps> = ({
 				const hasRecipeStats = !!(post.cooking_time || post.calories)
 				const authorUsername =
 					(post.author as any)?.username || (post.author as any)?.id
+				const cover =
+					post.cover_image_url ||
+					(post.cover_image
+						? `http://localhost:8000${
+								post.cover_image.startsWith('/') ? '' : '/'
+						  }${post.cover_image}`
+						: null)
 				return (
 					<Link to={`/posts/${post.id}`} key={post.id} className={styles.card}>
 						<div className={styles.header}>
@@ -154,12 +161,15 @@ export const PostsFeed: React.FC<PostsFeedProps> = ({
 							</span>
 						</div>
 
-						{post.cover_image ? (
+						{cover ? (
 							<img
-								src={post.cover_image}
+								src={cover}
 								alt={post.title}
 								className={styles.image}
 								loading='lazy'
+								onError={e => {
+									;(e.target as HTMLImageElement).style.display = 'none'
+								}}
 							/>
 						) : (
 							<div className={styles.imagePlaceholder}>

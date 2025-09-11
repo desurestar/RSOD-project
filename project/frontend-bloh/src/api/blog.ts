@@ -58,7 +58,7 @@ export const blogAPI = {
 		}
 		if (data.cover_image) formData.append('cover_image', data.cover_image)
 		data.tag_ids.forEach(id => formData.append('tag_ids', String(id)))
-		const response = await api.post('/blog/posts/', formData, {
+		const response = await api.post('blog/posts/', formData, {
 			headers: { 'Content-Type': 'multipart/form-data' },
 		})
 		return response.data
@@ -118,7 +118,7 @@ export const blogAPI = {
 			})
 		}
 
-		const response = await api.put<Post>(`/blog/posts/${id}/`, formData, {
+		const response = await api.put<Post>(`blog/posts/${id}/`, formData, {
 			headers: { 'Content-Type': 'multipart/form-data' },
 		})
 		return response.data
@@ -187,7 +187,7 @@ export const blogAPI = {
 		ingredients: { ingredient_id: number; quantity: string }[]
 	) => {
 		const response = await api.post(
-			`/blog/posts/${postId}/ingredients/`,
+			`blog/posts/${postId}/ingredients/`,
 			ingredients
 		)
 		return response.data
@@ -211,7 +211,7 @@ export const blogAPI = {
 		steps.forEach((s, idx) => {
 			if (s.image) formData.append(`step_images_${idx}`, s.image)
 		})
-		const response = await api.post(`/blog/posts/${postId}/steps/`, formData, {
+		const response = await api.post(`blog/posts/${postId}/steps/`, formData, {
 			headers: { 'Content-Type': 'multipart/form-data' },
 		})
 		return response.data

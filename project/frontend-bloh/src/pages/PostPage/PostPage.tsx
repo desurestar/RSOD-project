@@ -116,6 +116,14 @@ export const PostPage: React.FC = () => {
 		(post as Post & { ingredients?: PostIngredient[] }).ingredients || []
 	const steps = (post as Post & { steps?: RecipeStep[] }).steps || []
 
+	const cover =
+		post.cover_image_url ||
+		(post.cover_image
+			? `http://localhost:8000${post.cover_image.startsWith('/') ? '' : '/'}${
+					post.cover_image
+			  }`
+			: null)
+
 	return (
 		<main className={styles.postPage}>
 			<div className={styles.card}>
@@ -146,9 +154,9 @@ export const PostPage: React.FC = () => {
 					</div>
 				)}
 
-				{post.cover_image && (
+				{cover && (
 					<img
-						src={post.cover_image}
+						src={cover}
 						alt='cover'
 						className={styles.coverImage}
 						loading='lazy'
@@ -221,21 +229,30 @@ export const PostPage: React.FC = () => {
 					<section className={styles.stepsSection}>
 						<h2 className={styles.sectionTitle}>Шаги приготовления</h2>
 						<ol className={styles.stepsList}>
-							{steps.map(step => (
-								<li key={step.id} className={styles.stepItem}>
-									<div className={styles.stepDescription}>
-										{step.description}
-									</div>
-									{step.image && (
-										<img
-											src={step.image}
-											alt={`Шаг ${step.order}`}
-											className={styles.stepImage}
-											loading='lazy'
-										/>
-									)}
-								</li>
-							))}
+							{steps.map(step => {
+								const stepSrc =
+									(step as any).image_url ||
+									(step.image
+										? `http://localhost:8000${
+												step.image.startsWith('/') ? '' : '/'
+										  }${step.image}`
+										: null)
+								return (
+									<li key={step.id} className={styles.stepItem}>
+										<div className={styles.stepDescription}>
+											{step.description}
+										</div>
+										{stepSrc && (
+											<img
+												src={stepSrc}
+												alt={`Шаг ${step.order}`}
+												className={styles.stepImage}
+												loading='lazy'
+											/>
+										)}
+									</li>
+								)
+							})}
 						</ol>
 					</section>
 				)}

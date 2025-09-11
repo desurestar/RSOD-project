@@ -30,6 +30,7 @@ export interface RecipeStep {
 	order: number
 	description: string
 	image: string | null
+	image_url?: string | null
 }
 
 export interface PostIngredient {
@@ -45,6 +46,7 @@ export interface Post {
 	excerpt: string
 	content: string
 	cover_image: string | null
+	cover_image_url?: string | null
 	created_at: string
 	updated_at: string
 	author: User
