@@ -1,8 +1,7 @@
-
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import AdminPostViewSet, CommentViewSet, IngredientViewSet, PostIngredientCreateView, PostViewSet, RecipeStepCreateView, TagViewSet
+from .views import AdminPostViewSet, CommentViewSet, IngredientSyncView, IngredientViewSet, PostIngredientCreateView, PostViewSet, RecipeStepCreateView, RecipeStepSyncView, TagViewSet
 
 router = DefaultRouter()
 router.register(r'posts', PostViewSet, basename='post')
@@ -25,6 +24,8 @@ custom_urlpatterns = [
          name='admin-post-status'),
     path('posts/<int:post_id>/ingredients/', PostIngredientCreateView.as_view(), name='post-add-ingredient'),
     path('posts/<int:post_id>/steps/', RecipeStepCreateView.as_view(), name='post-add-steps-bulk'),
+    path('posts/<int:post_id>/ingredients/sync/', IngredientSyncView.as_view(), name='post-ingredients-sync'),
+    path('posts/<int:post_id>/steps/sync/', RecipeStepSyncView.as_view(), name='post-steps-sync'),
 ]
 
 urlpatterns = [

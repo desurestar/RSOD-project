@@ -34,6 +34,7 @@ export interface RecipeStep {
 }
 
 export interface PostIngredient {
+	id?: number // <-- добавлено
 	ingredient: Ingredient
 	quantity: string
 }

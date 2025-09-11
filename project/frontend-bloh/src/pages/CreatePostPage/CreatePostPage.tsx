@@ -219,8 +219,11 @@ export const CreatePostPage = () => {
 					: null,
 			}
 
-			await createPost(postData)
-			alert('Пост успешно создан!')
+			// Создание поста и немедленная навигация на страницу поста
+			const created = await createPost(postData)
+			if (created?.id) {
+				navigate(`/posts/${created.id}`)
+			}
 		} catch (err) {
 			setLocalError('Не удалось создать пост. Попробуйте снова.')
 		}

@@ -159,8 +159,10 @@ export const blogAPI = {
 	},
 
 	getTags: async (params?: { page?: number; search?: string }) => {
-		const r = await api.get<PaginatedResponse<Tag>>('blog/tags/', { params })
-		return r.data
+		const response = await api.get<PaginatedResponse<Tag>>('blog/tags/', {
+			params,
+		})
+		return response.data.results
 	},
 
 	createTag: async (data: Omit<Tag, 'id'>) => {
@@ -173,11 +175,11 @@ export const blogAPI = {
 	},
 
 	getIngredients: async (params?: { page?: number; search?: string }) => {
-		const r = await api.get<PaginatedResponse<Ingredient>>(
+		const response = await api.get<PaginatedResponse<Ingredient>>(
 			'blog/ingredients/',
 			{ params }
 		)
-		return r.data
+		return response.data.results
 	},
 
 	createIngredient: async (data: Omit<Ingredient, 'id'>) => {
@@ -249,5 +251,50 @@ export const blogAPI = {
 			params,
 		})
 		return response.data
+	},
+	syncPostIngredients: async (
+		postId: number,
+		items: {
+			id?: number
+			ingredient_id: number
+			quantity: string
+			_delete?: boolean
+		}[]
+	) => {
+		const r = await api.patch(`blog/posts/${postId}/ingredients/sync/`, items)
+		return r.data
+	},
+
+	syncPostSteps: async (
+		postId: number,
+		items: {
+			id?: number
+			order: number
+			description: string
+			_delete?: boolean
+			image?: File | null
+		}[]
+	) => {
+		const fd = new FormData()
+		fd.append(
+			'step_data',
+			JSON.stringify(
+				items.map(i => ({
+					id: i.id,
+					order: i.order,
+					description: i.description,
+					_delete: i._delete || false,
+				}))
+			)
+		)
+		items.forEach((s, idx) => {
+			if (s.image && !s._delete) {
+				fd.append(`step_images_${idx}`, s.image)
+			}
+		})
+		const r = await api.patch(`blog/posts/${postId}/steps/sync/`, fd, {
+			headers: { 'Content-Type': 'multipart/form-data' },
+		})
+		return r.data
 	},
 }

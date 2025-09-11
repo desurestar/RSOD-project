@@ -105,6 +105,17 @@ export const AdminPosts = () => {
 		setShowEditModal(false)
 	}
 
+	// Блокируем прокрутку body при открытом модальном окне
+	useEffect(() => {
+		if (showEditModal) {
+			const prev = document.body.style.overflow
+			document.body.style.overflow = 'hidden'
+			return () => {
+				document.body.style.overflow = prev
+			}
+		}
+	}, [showEditModal])
+
 	if (initialLoading) return <LoadingSpinner />
 	if (error) return <div className={styles.section}>{error}</div>
 

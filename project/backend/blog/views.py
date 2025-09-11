@@ -7,8 +7,9 @@ from django.db import transaction
 from django.db.models import Count, Exists, F, IntegerField, OuterRef, Q, Value
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.filters import SearchFilter
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -18,8 +19,28 @@ from core.permissions import IsAdminUserOrReadOnly
 
 from .models import Comment, Ingredient, Post, PostIngredient, RecipeStep, Tag
 from .pagination import AdminPageNumberPagination, SmallPageNumberPagination
-from .serializers import CommentSerializer, IngredientSerializer, PostIngredientCreateSerializer, PostSerializer, RecipeStepCreateSerializer, RecipeStepSerializer, TagSerializer
+from .serializers import (
+    CommentSerializer,
+    IngredientSerializer,
+    PostIngredientBulkSerializer,
+    PostIngredientCreateSerializer,
+    PostIngredientSerializer,  # <-- добавлено
+    PostSerializer,
+    RecipeStepBulkSerializer,
+    RecipeStepCreateSerializer,
+    RecipeStepSerializer,
+    TagSerializer,
+)
 from .utils import send_new_post_notification
+
+
+def ensure_author_or_admin(request, post):
+    user = request.user
+    if not user.is_authenticated:
+        return False
+    if user.is_staff or post.author_id == user.id:
+        return True
+    return False
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -222,21 +243,25 @@ class PostIngredientCreateView(APIView):
     def post(self, request, post_id):
         print('DEBUG PostIngredientCreateView request.data:', request.data)
         post = Post.objects.get(pk=post_id)
+        replace = request.query_params.get('replace') in ('1', 'true', 'True')
         serializer = PostIngredientCreateSerializer(data=request.data, many=isinstance(request.data, list))
         if not serializer.is_valid():
             print('DEBUG serializer.errors:', serializer.errors)
             return Response(serializer.errors, status=400)
         created = []
-        for item in serializer.validated_data:
-            ingredient_id = item['ingredient_id']
-            quantity = item['quantity']
-            obj = PostIngredient.objects.create(
-                post=post,
-                ingredient_id=ingredient_id,
-                quantity=quantity
-            )
-            created.append(obj.id)
-        return Response({'created': created}, status=status.HTTP_201_CREATED)
+        with transaction.atomic():
+            if replace:
+                PostIngredient.objects.filter(post=post).delete()
+            for item in serializer.validated_data:
+                ingredient_id = item['ingredient_id']
+                quantity = item['quantity']
+                obj = PostIngredient.objects.create(
+                    post=post,
+                    ingredient_id=ingredient_id,
+                    quantity=quantity
+                )
+                created.append(obj.id)
+        return Response({'created': created, 'replaced': replace}, status=status.HTTP_201_CREATED)
 
 class RecipeStepCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -246,6 +271,7 @@ class RecipeStepCreateView(APIView):
         print('DEBUG steps bulk request.data keys:', list(request.data.keys()))
         print('DEBUG FILES:', request.FILES)
         post = Post.objects.get(pk=post_id)
+        replace = request.query_params.get('replace') in ('1', 'true', 'True')
 
         raw = request.data.get('step_data')
         if not raw:
@@ -290,6 +316,8 @@ class RecipeStepCreateView(APIView):
 
         created_objs = []
         with transaction.atomic():
+            if replace:
+                post.steps.all().delete()
             for idx, item in enumerate(serializer.validated_data):
                 image = request.FILES.get(f'step_images_{idx}')
                 if image:
@@ -306,7 +334,7 @@ class RecipeStepCreateView(APIView):
                 created_objs.append(obj)
 
         return Response(
-            {'steps': RecipeStepSerializer(created_objs, many=True).data},
+            {'steps': RecipeStepSerializer(created_objs, many=True).data, 'replaced': replace},
             status=status.HTTP_201_CREATED
         )
 
@@ -325,4 +353,121 @@ class TagViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUserOrReadOnly]
     filter_backends = [SearchFilter]
     search_fields = ['name']
+
+class IngredientSyncView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]
+
+    def patch(self, request, post_id):
+        try:
+            post = Post.objects.select_related('author').get(pk=post_id)
+        except Post.DoesNotExist:
+            raise NotFound('Post not found')
+
+        if not ensure_author_or_admin(request, post):
+            return Response({'detail': 'Forbidden'}, status=403)
+
+        if not isinstance(request.data, list):
+            return Response({'detail': 'Ожидался список объектов'}, status=400)
+
+        serializer = PostIngredientBulkSerializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        existing = {pi.id: pi for pi in PostIngredient.objects.filter(post=post)}
+        processed_ids = set()
+        with transaction.atomic():
+            for item in serializer.validated_data:
+                iid = item.get('id')
+                delete_flag = item.get('_delete', False)
+                if iid:
+                    obj = existing.get(iid)
+                    if not obj:
+                        continue
+                    if delete_flag:
+                        obj.delete()
+                        continue
+                    # update
+                    ingredient_id = item.get('ingredient_id') or obj.ingredient_id
+                    obj.ingredient_id = ingredient_id
+                    obj.quantity = item.get('quantity', obj.quantity)
+                    obj.save()
+                    processed_ids.add(iid)
+                else:
+                    if delete_flag:
+                        continue
+                    PostIngredient.objects.create(
+                        post=post,
+                        ingredient_id=item['ingredient_id'],
+                        quantity=item['quantity']
+                    )
+
+        result = PostIngredient.objects.filter(post=post).select_related('ingredient')
+        out = PostIngredientSerializer(result, many=True).data
+        return Response({'ingredients': out})
+
+class RecipeStepSyncView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def patch(self, request, post_id):
+        post = Post.objects.select_related('author').get(pk=post_id)
+        if not ensure_author_or_admin(request, post):
+            return Response({'detail': 'Forbidden'}, status=403)
+
+        raw = request.data.get('step_data')
+        if not raw:
+            return Response({'detail': 'step_data required'}, status=400)
+
+        if isinstance(raw, str):
+            try:
+                data_list = json.loads(raw)
+            except Exception as e:
+                return Response({'detail': f'Invalid JSON: {e}'}, status=400)
+        else:
+            data_list = raw
+
+        if not isinstance(data_list, list):
+            return Response({'detail': 'step_data must be list'}, status=400)
+
+        serializer = RecipeStepBulkSerializer(data=data_list, many=True)
+        serializer.is_valid(raise_exception=True)
+
+        existing = {s.id: s for s in post.steps.all()}
+        with transaction.atomic():
+            for idx, item in enumerate(serializer.validated_data):
+                sid = item.get('id')
+                delete_flag = item.get('_delete', False)
+                image = request.FILES.get(f'step_images_{idx}')
+                if sid:
+                    step = existing.get(sid)
+                    if not step:
+                        continue
+                    if delete_flag:
+                        step.delete()
+                        continue
+                    # update
+                    step.order = item.get('order', step.order)
+                    step.description = item.get('description', step.description)
+                    if image:
+                        step.image = image
+                    step.save()
+                else:
+                    if delete_flag:
+                        continue
+                    RecipeStep.objects.create(
+                        post=post,
+                        order=item['order'],
+                        description=item['description'],
+                        image=image if image else None
+                    )
+
+            # Нормализуем порядок (уникальность order внутри поста)
+            ordered = list(post.steps.order_by('order', 'id'))
+            for i, step in enumerate(ordered, start=1):
+                if step.order != i:
+                    step.order = i
+                    step.save(update_fields=['order'])
+
+        out = RecipeStepSerializer(post.steps.order_by('order'), many=True, context={'request': request}).data
+        return Response({'steps': out})
 

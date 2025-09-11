@@ -22,7 +22,7 @@ interface BlogState {
 	fetchPosts: () => Promise<void>
 	fetchAdminPosts: () => Promise<void>
 	fetchPost: (id: number) => Promise<void>
-	createPost: (data: PostCreate) => Promise<void>
+	createPost: (data: PostCreate) => Promise<Post | null>
 	updatePost: (id: number, data: Partial<PostCreate>) => Promise<void>
 	deletePost: (id: number) => Promise<void>
 	likePost: (id: number) => Promise<void>
@@ -86,39 +86,72 @@ export const useBlogStore = create<BlogState>(set => ({
 		set({ loading: true })
 		try {
 			const { ingredient_data, step_data, ...postData } = data
+			// создаём базовый пост
 			const newPost = await blogAPI.createPost(postData)
+			// добавляем ингредиенты
 			if (ingredient_data?.length) {
 				await blogAPI.createPostIngredients(newPost.id, ingredient_data)
 			}
+			// добавляем шаги
 			if (step_data?.length) {
 				await blogAPI.createPostSteps(newPost.id, step_data)
 			}
-			// обновим пост целиком (чтобы получить steps/ingredients)
+			// получаем полный пост
 			const full = await blogAPI.getPost(newPost.id)
 			set(state => ({
 				posts: [full, ...state.posts],
 				adminPosts: [full, ...state.adminPosts],
+				currentPost: full,
 				loading: false,
 			}))
+			return full
 		} catch (e) {
 			console.error('Create post error:', e)
 			set({ error: 'Failed to create post', loading: false })
+			return null
 		}
 	},
 
 	updatePost: async (id, data) => {
 		set({ loading: true })
 		try {
-			const updatedPost = await blogAPI.updatePost(id, data)
+			const { ingredient_data, step_data, ...base } = data
+
+			await blogAPI.updatePost(id, base)
+
+			if (ingredient_data) {
+				await blogAPI.createPostIngredients(
+					id,
+					ingredient_data.map(i => ({
+						ingredient_id: i.ingredient_id,
+						quantity: i.quantity,
+					})),
+					{ replace: true }
+				)
+			}
+
+			if (step_data) {
+				await blogAPI.createPostSteps(
+					id,
+					step_data.map(s => ({
+						order: s.order,
+						description: s.description,
+						image: s.image ?? null,
+					})),
+					{ replace: true }
+				)
+			}
+
+			const full = await blogAPI.getPost(id)
+
 			set(state => ({
-				posts: state.posts.map(post => (post.id === id ? updatedPost : post)),
-				adminPosts: state.adminPosts.map(post =>
-					post.id === id ? updatedPost : post
-				),
-				currentPost: updatedPost,
+				posts: state.posts.map(p => (p.id === id ? full : p)),
+				adminPosts: state.adminPosts.map(p => (p.id === id ? full : p)),
+				currentPost: state.currentPost?.id === id ? full : state.currentPost,
 				loading: false,
 			}))
 		} catch (error) {
+			console.error('Update post error:', error)
 			set({ error: 'Failed to update post', loading: false })
 		}
 	},

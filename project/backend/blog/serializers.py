@@ -34,9 +34,10 @@ class RecipeStepSerializer(serializers.ModelSerializer):
 
 class PostIngredientSerializer(serializers.ModelSerializer):
     ingredient = IngredientSerializer(read_only=True)
+    id = serializers.IntegerField(read_only=True)  # <-- добавлено
     class Meta:
         model = PostIngredient
-        fields = ['ingredient', 'quantity']
+        fields = ['id', 'ingredient', 'quantity']
 
 class IngredientDataSerializer(serializers.Serializer):
     ingredient_id = serializers.IntegerField()
@@ -70,8 +71,12 @@ class PostSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     likes_count = serializers.IntegerField(read_only=True)
     steps = RecipeStepSerializer(many=True, read_only=True)
-    ingredients = PostIngredientSerializer(source='postingredient_set', many=True, read_only=True)  # <-- исправлено
+    ingredients = PostIngredientSerializer(source='postingredient_set', many=True, read_only=True)
     cover_image_url = serializers.SerializerMethodField()
+
+    # ДОБАВЛЕНО: поля для записи (nested update)
+    ingredient_data = IngredientDataSerializer(many=True, write_only=True, required=False)
+    step_data = StepDataSerializer(many=True, write_only=True, required=False)
 
     class Meta:
         model = Post
@@ -79,7 +84,7 @@ class PostSerializer(serializers.ModelSerializer):
             'id','post_type','status','title','excerpt','content','cover_image',
             'cover_image_url','created_at','updated_at','author','tags','tag_ids',
             'likes_count','comments_count','views_count','calories','cooking_time',
-            'is_liked','steps','ingredients'
+            'is_liked','steps','ingredients','ingredient_data','step_data'
         ]
         read_only_fields = [
             'id','created_at','updated_at','author','likes_count',
@@ -194,3 +199,145 @@ class RecipeStepCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipeStep
         fields = ['order', 'description', 'image']
+
+class PostIngredientBulkSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    ingredient_id = serializers.IntegerField(required=False)
+    _delete = serializers.BooleanField(required=False, write_only=True, default=False)
+
+    class Meta:
+        model = PostIngredient
+        fields = ['id', 'ingredient_id', 'quantity', '_delete']
+
+    def validate(self, attrs):
+        if not attrs.get('id') and attrs.get('_delete'):
+            raise serializers.ValidationError('Нельзя удалять без id')
+        if not attrs.get('_delete') and not attrs.get('ingredient_id') and not attrs.get('id'):
+            raise serializers.ValidationError('Нужно указать ingredient_id для нового ингредиента')
+        return attrs
+
+class RecipeStepBulkSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    _delete = serializers.BooleanField(required=False, write_only=True, default=False)
+    class Meta:
+        model = RecipeStep
+        fields = ['id', 'order', 'description', '_delete']
+
+    def validate(self, attrs):
+        if not attrs.get('id') and attrs.get('_delete'):
+            raise serializers.ValidationError('Нельзя удалять без id')
+        return attrs
+
+class PostSerializer(serializers.ModelSerializer):
+    author = UserSerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
+    tag_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True,
+        write_only=True,
+        required=False
+    )
+    is_liked = serializers.SerializerMethodField()
+    likes_count = serializers.IntegerField(read_only=True)
+    steps = RecipeStepSerializer(many=True, read_only=True)
+    ingredients = PostIngredientSerializer(source='postingredient_set', many=True, read_only=True)
+    cover_image_url = serializers.SerializerMethodField()
+
+    # ДОБАВЛЕНО: поля для записи (nested update)
+    ingredient_data = IngredientDataSerializer(many=True, write_only=True, required=False)
+    step_data = StepDataSerializer(many=True, write_only=True, required=False)
+
+    class Meta:
+        model = Post
+        fields = [
+            'id','post_type','status','title','excerpt','content','cover_image',
+            'cover_image_url','created_at','updated_at','author','tags','tag_ids',
+            'likes_count','comments_count','views_count','calories','cooking_time',
+            'is_liked','steps','ingredients','ingredient_data','step_data'
+        ]
+        read_only_fields = [
+            'id','created_at','updated_at','author','likes_count',
+            'comments_count','views_count','is_liked','tags','steps','ingredients'
+        ]
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.liked_by.filter(pk=request.user.pk).exists()
+
+    def get_cover_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.cover_image and request:
+            return request.build_absolute_uri(obj.cover_image.url)
+        return None
+
+    def create(self, validated_data):
+        tag_ids = validated_data.pop('tag_ids', [])
+        ingredients_data = validated_data.pop('ingredient_data', [])
+        steps_data = validated_data.pop('step_data', [])
+        request = self.context.get('request')
+
+        post = super().create(validated_data)
+        if tag_ids:
+            post.tags.set(tag_ids)
+
+        for item in ingredients_data:
+            PostIngredient.objects.create(
+                post=post,
+                ingredient_id=item['ingredient_id'],
+                quantity=item['quantity']
+            )
+
+        for index, step in enumerate(steps_data):
+            step_image = request.FILES.get(f'step_images_{index}') if request else None
+            RecipeStep.objects.create(
+                post=post,
+                order=step['order'],
+                description=step['description'],
+                image=step_image
+            )
+        return post
+
+    # В update уберите полное удаление steps/ingredients если переходите на sync эндпоинты
+    def update(self, instance, validated_data):
+        tag_ids = validated_data.pop('tag_ids', None)
+        # ingredients_data = validated_data.pop('ingredient_data', None)
+        # steps_data = validated_data.pop('step_data', None)
+        request = self.context.get('request')
+
+        instance = super().update(instance, validated_data)
+
+        if tag_ids is not None:
+            instance.tags.set(tag_ids)
+
+        # if ingredients_data is not None:
+        #     PostIngredient.objects.filter(post=instance).delete()
+        #     for item in ingredients_data:
+        #         PostIngredient.objects.create(
+        #             post=instance,
+        #             ingredient_id=item['ingredient_id'],
+        #             quantity=item['quantity']
+        #         )
+
+        # if steps_data is not None:
+        #     instance.steps.all().delete()
+        #     for index, step in enumerate(steps_data):
+        #         step_image = request.FILES.get(f'step_images_{index}') if request else None
+        #         RecipeStep.objects.create(  # <-- исправлено
+        #             post=instance,
+        #             order=step.get('order'),
+        #             description=step.get('description'),
+        #             image=step_image
+        #         )
+        # Удаление обложки
+        request = self.context.get('request')
+        if request:
+            # если фронт прислал явный флаг remove_cover = true
+            remove_cover = request.data.get('remove_cover')
+            if remove_cover in ('true', '1', True):
+                if instance.cover_image:
+                    instance.cover_image.delete(save=False)
+                instance.cover_image = None
+                instance.save(update_fields=['cover_image'])
+        return instance
