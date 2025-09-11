@@ -222,7 +222,11 @@ export const CreatePostPage = () => {
 			// Создание поста и немедленная навигация на страницу поста
 			const created = await createPost(postData)
 			if (created?.id) {
-				navigate(`/posts/${created.id}`)
+				// Переходим только если опубликован
+				if (created.status === 'published') {
+					navigate(`/posts/${created.id}`)
+				}
+				// Если черновик — остаёмся на странице (по требованию "ничего не делать")
 			}
 		} catch (err) {
 			setLocalError('Не удалось создать пост. Попробуйте снова.')

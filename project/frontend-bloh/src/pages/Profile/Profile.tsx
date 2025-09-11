@@ -4,6 +4,7 @@ import { authAPI } from '../../api/auth'
 import { blogAPI } from '../../api/blog'
 import { Post, User } from '../../api/types'
 import { MiniPostCard } from '../../components/MiniPostCard/MiniPostCard'
+import { PostEditModal } from '../../components/Modals/PostEditModal/PostEditModal'
 import { UserCardMini } from '../../components/UserCardMini/UserCardMini'
 import { useAuthStore } from '../../stores/authStore'
 import styles from './Profile.module.css'
@@ -23,7 +24,11 @@ export const Profile: React.FC = () => {
 	const [tabData, setTabData] = useState<(Post | User)[]>([])
 	const [tabLoading, setTabLoading] = useState(false)
 	const [tabError, setTabError] = useState<string | null>(null)
+	const [editingPost, setEditingPost] = useState<Post | null>(null)
 	const tabCache = useRef<Record<string, (Post | User)[]>>({})
+	const [postsSubTab, setPostsSubTab] = useState<'published' | 'drafts'>(
+		'published'
+	)
 
 	useEffect(() => {
 		if (isAuthenticated) {
@@ -88,6 +93,22 @@ export const Profile: React.FC = () => {
 		} catch (err) {
 			console.error('Ошибка отписки:', err)
 			setTabError('Не удалось отписаться')
+		}
+	}
+
+	const handleDraftClick = (p: Post) => {
+		setEditingPost(p)
+	}
+
+	const handlePostSaved = (updated: Post) => {
+		// обновляем кэш вкладки "posts"
+		tabCache.current.posts = (tabCache.current.posts || []).map(item =>
+			(item as Post).id === updated.id ? updated : item
+		)
+		if (activeTab === 'posts') {
+			setTabData(prev =>
+				prev.map(item => ((item as Post).id === updated.id ? updated : item))
+			)
 		}
 	}
 
@@ -206,11 +227,79 @@ export const Profile: React.FC = () => {
 								}[activeTab]
 							}
 						</div>
+					) : activeTab === 'posts' ? (
+						<div>
+							<div className={styles.postsSubTabs}>
+								<button
+									type='button'
+									className={`${styles.postsSubTabButton} ${
+										postsSubTab === 'published' ? styles.active : ''
+									}`}
+									onClick={() => setPostsSubTab('published')}
+								>
+									Опубликованные
+								</button>
+								<button
+									type='button'
+									className={`${styles.postsSubTabButton} ${
+										postsSubTab === 'drafts' ? styles.active : ''
+									}`}
+									onClick={() => setPostsSubTab('drafts')}
+								>
+									Черновики
+								</button>
+							</div>
+							{(() => {
+								const posts = tabData as Post[]
+								const published = posts.filter(p => p.status === 'published')
+								const drafts = posts.filter(p => p.status === 'draft')
+								const list = postsSubTab === 'published' ? published : drafts
+
+								if (list.length === 0) {
+									return (
+										<div className={styles.emptyMessage}>
+											{postsSubTab === 'published'
+												? 'Нет опубликованных постов'
+												: 'Нет черновиков'}
+										</div>
+									)
+								}
+
+								return (
+									<div className={styles.tabList}>
+										{list.map(p =>
+											postsSubTab === 'published' ? (
+												<div key={p.id} className={styles.tabItem}>
+													<MiniPostCard post={p} />
+												</div>
+											) : (
+												<div
+													key={p.id}
+													className={`${styles.tabItem} ${styles.draftItem}`}
+													onClick={() => handleDraftClick(p)}
+													title='Редактировать черновик'
+												>
+													<div className={styles.draftTitle}>
+														{p.title || '(Без названия)'}
+													</div>
+													<div className={styles.draftMeta}>
+														<span>Черновик</span>
+														<span>
+															{new Date(p.updated_at).toLocaleDateString()}
+														</span>
+													</div>
+												</div>
+											)
+										)}
+									</div>
+								)
+							})()}
+						</div>
 					) : (
 						<div className={styles.tabList}>
 							{tabData.map(item => (
 								<div key={item.id} className={styles.tabItem}>
-									{activeTab === 'posts' || activeTab === 'liked' ? (
+									{activeTab === 'liked' ? (
 										<MiniPostCard post={item as Post} />
 									) : (
 										<UserCardMini
@@ -227,6 +316,13 @@ export const Profile: React.FC = () => {
 						</div>
 					)}
 				</div>
+			)}
+			{editingPost && (
+				<PostEditModal
+					post={editingPost}
+					onClose={() => setEditingPost(null)}
+					onSave={handlePostSaved}
+				/>
 			)}
 		</div>
 	)

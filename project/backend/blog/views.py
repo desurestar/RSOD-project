@@ -47,7 +47,7 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     authentication_classes = [JWTAuthentication]
-    pagination_class = SmallPageNumberPagination  # <-- добавлено
+    pagination_class = SmallPageNumberPagination
     filter_backends = [SearchFilter]
     search_fields = ['title', 'author__username', 'tags__name']
 
@@ -98,19 +98,22 @@ class PostViewSet(viewsets.ModelViewSet):
         # Аннотация релевантности (число совпавших тегов)
         if tag_slugs:
             queryset = queryset.annotate(
-                matched_tags=Count('tags', filter=Q(tags__slug__in=tag_slugs), distinct=True)
+                matched_tags=Count('tags', filter=Q(tags__slug__in=tag_slugs))
             )
         else:
-            queryset = queryset.annotate(
-                matched_tags=Value(0, output_field=IntegerField())
-            )
+            queryset = queryset.annotate(matched_tags=Value(0, output_field=IntegerField()))
 
-        # Статус (неадмин видит только опубликованные)
+        # Статус: не staff видит только опубликованные чужие посты, но всегда видит свои (draft/archived)
         if not user.is_staff:
-            queryset = queryset.filter(status='published')
+            if user.is_authenticated:
+                queryset = queryset.filter(
+                    Q(status='published') | Q(author_id=user.id)
+                )
+            else:
+                queryset = queryset.filter(status='published')
 
         # Сортировка
-        ordering = qp.get('ordering')  # likes|-likes|views|-views|relevance|-relevance
+        ordering = qp.get('ordering')
         mapping = {
             'likes': 'likes_count',
             '-likes': '-likes_count',
@@ -120,9 +123,10 @@ class PostViewSet(viewsets.ModelViewSet):
             '-relevance': 'matched_tags',
         }
         if ordering in mapping:
-            queryset = queryset.order_by(mapping[ordering], '-created_at')
+            queryset = queryset.order_by(mapping[ordering], '-id')
         else:
-            queryset = queryset.order_by('-created_at')
+            # По умолчанию — новизна
+            queryset = queryset.order_by('-created_at', '-id')
 
         return queryset
 
@@ -134,8 +138,12 @@ class PostViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        old_status = instance.status
 
+        # Дополнительная защита: редактировать может только автор или админ
+        if not ensure_author_or_admin(request, instance):
+            return Response({'detail': 'Forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+        old_status = instance.status
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)

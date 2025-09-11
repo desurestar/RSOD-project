@@ -1,9 +1,9 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.db.models import Count
 
 from backend import settings
+
 
 def user_avatar_path(instance, filename):
     if not instance.pk:
@@ -14,7 +14,7 @@ class CustomUser(AbstractUser):
     class Role(models.TextChoices):
         USER = 'user', _('User')
         ADMIN = 'admin', _('Admin')
-        
+
     display_name = models.CharField(
         _('display name'),
         max_length=150,
@@ -34,7 +34,7 @@ class CustomUser(AbstractUser):
         related_name='subscriptions',
         blank=True
     )
-    
+
     role = models.CharField(
         _('role'),
         max_length=20,
@@ -42,11 +42,11 @@ class CustomUser(AbstractUser):
         default=Role.USER,
         help_text=_('User role')
     )
-    
+
     @property
     def is_admin(self):
         return self.role == self.Role.ADMIN or self.is_superuser
-    
+
     @property
     def avatar_url(self):
         if self.avatar:
