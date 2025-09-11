@@ -165,6 +165,28 @@ export const blogAPI = {
 		return response.data.results
 	},
 
+	// ДОБАВЛЕНО: пагинированный вариант для админки
+	getTagsPaginated: async (params?: {
+		page?: number
+		page_size?: number
+		search?: string
+	}) => {
+		const r = await api.get<PaginatedResponse<Tag>>('blog/tags/', { params })
+		return r.data
+	},
+
+	getIngredientsPaginated: async (params?: {
+		page?: number
+		page_size?: number
+		search?: string
+	}) => {
+		const r = await api.get<PaginatedResponse<Ingredient>>(
+			'blog/ingredients/',
+			{ params }
+		)
+		return r.data
+	},
+
 	createTag: async (data: Omit<Tag, 'id'>) => {
 		const response = await api.post<Tag>('blog/tags/', data)
 		return response.data
@@ -172,14 +194,6 @@ export const blogAPI = {
 
 	deleteTag: async (id: number) => {
 		await api.delete(`blog/tags/${id}/`)
-	},
-
-	getIngredients: async (params?: { page?: number; search?: string }) => {
-		const response = await api.get<PaginatedResponse<Ingredient>>(
-			'blog/ingredients/',
-			{ params }
-		)
-		return response.data.results
 	},
 
 	createIngredient: async (data: Omit<Ingredient, 'id'>) => {

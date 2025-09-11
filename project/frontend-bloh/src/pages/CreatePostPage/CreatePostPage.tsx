@@ -1,5 +1,13 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react'
+import {
+	ChangeEvent,
+	FormEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
+import { blogAPI } from '../../api/blog'
 import { Ingredient, PostCreate, Tag } from '../../api/types'
 import { useAuthStore } from '../../stores/authStore'
 import { useBlogStore } from '../../stores/blogStore'
@@ -51,6 +59,25 @@ export const CreatePostPage = () => {
 	const [stepsInput, setStepsInput] = useState<StepInput[]>([])
 	const [localError, setLocalError] = useState<string>('')
 
+	// ДОБАВЛЕНО: локальные состояния для поиска тегов
+	const [tagSearch, setTagSearch] = useState('')
+	const [tagDebounced, setTagDebounced] = useState('')
+	const [tagResults, setTagResults] = useState<Tag[]>([])
+	const [tagPage, setTagPage] = useState(1)
+	const [tagHasNext, setTagHasNext] = useState(true)
+	const [tagLoading, setTagLoading] = useState(false)
+
+	// ДОБАВЛЕНО: состояния для поиска ингредиентов
+	const [ingSearch, setIngSearch] = useState('')
+	const [ingDebounced, setIngDebounced] = useState('')
+	const [ingResults, setIngResults] = useState<Ingredient[]>([])
+	const [ingPage, setIngPage] = useState(1)
+	const [ingHasNext, setIngHasNext] = useState(true)
+	const [ingLoading, setIngLoading] = useState(false)
+
+	const TAG_PAGE_SIZE = 16
+	const ING_PAGE_SIZE = 30
+
 	const units = [
 		'г',
 		'кг',
@@ -64,11 +91,114 @@ export const CreatePostPage = () => {
 		'',
 	]
 
+	// debounce
 	useEffect(() => {
-		fetchTags()
-		fetchIngredients()
-	}, [fetchTags, fetchIngredients])
+		const id = setTimeout(() => setTagDebounced(tagSearch), 400)
+		return () => clearTimeout(id)
+	}, [tagSearch])
 
+	useEffect(() => {
+		const id = setTimeout(() => setIngDebounced(ingSearch), 400)
+		return () => clearTimeout(id)
+	}, [ingSearch])
+
+	// Первичная загрузка тегов/ингредиентов через store (КАК БЫЛО) — УДАЛЕНО чтобы не дублировать запросы
+	// useEffect(() => {
+	// 	fetchTags()
+	// 	fetchIngredients()
+	// }, [fetchTags, fetchIngredients])
+
+	// ДОБАВЛЕНО: загрузка (поиск) тегов
+	const loadTags = useCallback(
+		async (reset = false) => {
+			if (tagLoading) return
+			if (!reset && !tagHasNext) return
+			setTagLoading(true)
+			try {
+				const res = await blogAPI.getTagsPaginated({
+					page: reset ? 1 : tagPage,
+					page_size: TAG_PAGE_SIZE,
+					search: tagDebounced || undefined,
+				})
+				const list = res.results
+				if (reset) {
+					setTagResults(list)
+					setTagPage(2)
+					setTagHasNext(Boolean(res.next))
+				} else {
+					setTagResults(prev => [...prev, ...list])
+					setTagPage(p => p + 1)
+					setTagHasNext(Boolean(res.next))
+				}
+			} catch {
+				/* ignore */
+			} finally {
+				setTagLoading(false)
+			}
+		},
+		[tagDebounced, tagHasNext, tagPage, tagLoading]
+	)
+
+	// ДОБАВЛЕНО: загрузка (поиск) ингредиентов
+	const loadIngredients = useCallback(
+		async (reset = false) => {
+			if (ingLoading) return
+			if (!reset && !ingHasNext) return
+			setIngLoading(true)
+			try {
+				const res = await blogAPI.getIngredientsPaginated({
+					page: reset ? 1 : ingPage,
+					page_size: ING_PAGE_SIZE,
+					search: ingDebounced || undefined,
+				})
+				const list = res.results
+				if (reset) {
+					setIngResults(list)
+					setIngPage(2)
+					setIngHasNext(Boolean(res.next))
+				} else {
+					setIngResults(prev => [...prev, ...list])
+					setIngPage(p => p + 1)
+					setIngHasNext(Boolean(res.next))
+				}
+			} catch {
+				/* ignore */
+			} finally {
+				setIngLoading(false)
+			}
+		},
+		[ingDebounced, ingHasNext, ingPage, ingLoading]
+	)
+
+	// Триггеры перезапуска поиска (только при изменении debounced, не при каждой смене внутренних состояний)
+	useEffect(() => {
+		loadTags(true)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [tagDebounced])
+
+	useEffect(() => {
+		loadIngredients(true)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ingDebounced])
+
+	// IntersectionObserver для тегов (бесконечный скролл)
+	const tagListRef = useRef<HTMLDivElement | null>(null)
+	useEffect(() => {
+		const el = tagListRef.current
+		if (!el) return
+		function onScroll() {
+			if (
+				el.scrollTop + el.clientHeight >= el.scrollHeight - 40 &&
+				!tagLoading
+			) {
+				loadTags(false)
+			}
+		}
+		el.addEventListener('scroll', onScroll)
+		return () => el.removeEventListener('scroll', onScroll)
+	}, [loadTags, tagLoading])
+
+	// Аналогично для ингредиентов (если список большой)
 	const handleChange = (
 		e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
 	) => {
@@ -112,7 +242,12 @@ export const CreatePostPage = () => {
 	) => {
 		setIngredientsInput(prev => {
 			const updated = [...prev]
-			updated[index] = { ...updated[index], [field]: value }
+			let v: any = value
+			if (field === 'ingredient') {
+				// Приведение к числу
+				v = Number(v)
+			}
+			updated[index] = { ...updated[index], [field]: v }
 			return updated
 		})
 	}
@@ -204,10 +339,12 @@ export const CreatePostPage = () => {
 				content: formData.content || '',
 				cover_image: coverImage,
 				tag_ids: formData.tag_ids || [],
-				ingredient_data: ingredientsInput.map(ing => ({
-					ingredient_id: ing.ingredient,
-					quantity: `${ing.amount}${ing.unit ? ' ' + ing.unit : ''}`.trim(),
-				})),
+				ingredient_data: ingredientsInput
+					.filter(ing => ing.ingredient && ing.amount) // фильтр пустых
+					.map(ing => ({
+						ingredient_id: ing.ingredient,
+						quantity: `${ing.amount}${ing.unit ? ' ' + ing.unit : ''}`.trim(),
+					})),
 				step_data: stepsInput.map(step => ({
 					order: step.order,
 					description: step.description,
@@ -237,10 +374,16 @@ export const CreatePostPage = () => {
 		return <div className={styles.loading}>Загрузка данных пользователя...</div>
 	}
 
+	// ЗАМЕНА: вместо tags в UI используем tagResults (fallback на tags если пусто и нет поиска)
+	const renderedTags = tagDebounced || tagResults.length ? tagResults : tags
+
+	// Для селектов ингредиентов — используем ingResults (fallback на ingredients)
+	const renderedIngredients =
+		ingDebounced || ingResults.length ? ingResults : ingredients
+
 	return (
 		<div className={styles.container}>
 			<h1 className={styles.title}>Создание нового поста</h1>
-
 			<form onSubmit={handleSubmit} className={styles.form}>
 				{/* Тип поста - радио кнопки */}
 				<div className={styles.inputGroup}>
@@ -361,19 +504,33 @@ export const CreatePostPage = () => {
 					</div>
 				</div>
 
-				{/* Теги */}
+				{/* Теги + поиск */}
 				<div className={styles.inputGroup}>
 					<label className={styles.inputLabel}>Теги</label>
-					<div className={styles.tagList}>
-						{tags.map((tag: Tag) => (
+					<div className={styles.searchRow}>
+						<input
+							type='text'
+							placeholder='Поиск тегов...'
+							value={tagSearch}
+							onChange={e => setTagSearch(e.target.value)}
+							className={styles.input}
+						/>
+						{tagLoading && <span className={styles.miniSpinner} />}
+					</div>
+					<div className={styles.scrollBox} ref={tagListRef}>
+						{renderedTags.map(tag => (
 							<label
 								key={tag.id}
 								className={`${styles.tagItem} ${
 									formData.tag_ids?.includes(tag.id) ? styles.selected : ''
 								}`}
 								style={{
-									backgroundColor: tag.color || 'transparent',
-									color: tag.color ? '#fff' : 'inherit',
+									backgroundColor: formData.tag_ids?.includes(tag.id)
+										? tag.color
+										: 'transparent',
+									color: formData.tag_ids?.includes(tag.id)
+										? '#fff'
+										: 'inherit',
 								}}
 							>
 								<input
@@ -386,6 +543,12 @@ export const CreatePostPage = () => {
 								{tag.name}
 							</label>
 						))}
+						{!renderedTags.length && !tagLoading && (
+							<div className={styles.emptyBox}>Ничего не найдено</div>
+						)}
+						{tagLoading && (
+							<div className={styles.loadingInline}>Загрузка...</div>
+						)}
 					</div>
 				</div>
 
@@ -394,6 +557,23 @@ export const CreatePostPage = () => {
 					<>
 						<div className={styles.inputGroup}>
 							<label className={styles.inputLabel}>Ингредиенты</label>
+
+							<div className={styles.searchRow}>
+								<input
+									type='text'
+									placeholder='Поиск ингредиентов...'
+									value={ingSearch}
+									onChange={e => setIngSearch(e.target.value)}
+									className={styles.input}
+								/>
+								{ingLoading && <span className={styles.miniSpinner} />}
+							</div>
+
+							<div className={styles.ingHint}>
+								Прокручивайте список при выборе — новые варианты будут
+								подгружаться.
+							</div>
+
 							{ingredientsInput.map((ing, index) => (
 								<div key={index} className={styles.ingredientRow}>
 									<div className={styles.selectWrapper}>
@@ -404,9 +584,10 @@ export const CreatePostPage = () => {
 											}
 											className={styles.input}
 											disabled={loading}
+											size={1}
 										>
 											<option value=''>Выберите ингредиент</option>
-											{ingredients.map((item: Ingredient) => (
+											{renderedIngredients.map(item => (
 												<option key={item.id} value={item.id}>
 													{item.name}
 												</option>
@@ -434,7 +615,7 @@ export const CreatePostPage = () => {
 										>
 											{units.map(unit => (
 												<option key={unit} value={unit}>
-													{unit || 'Без единицы'}
+													{unit || 'Без ед.'}
 												</option>
 											))}
 										</select>
@@ -449,14 +630,30 @@ export const CreatePostPage = () => {
 									</button>
 								</div>
 							))}
-							<button
-								type='button'
-								onClick={addIngredient}
-								className={`${styles.button} ${styles.secondary}`}
-								disabled={loading}
-							>
-								Добавить ингредиент
-							</button>
+
+							<div className={styles.inlineButtons}>
+								<button
+									type='button'
+									onClick={addIngredient}
+									className={`${styles.button} ${styles.secondary}`}
+									disabled={loading}
+								>
+									Добавить ингредиент
+								</button>
+								{ingHasNext && !ingLoading && (
+									<button
+										type='button'
+										onClick={() => loadIngredients(false)}
+										className={`${styles.button} ${styles.secondary}`}
+										disabled={ingLoading}
+									>
+										Ещё ингредиенты
+									</button>
+								)}
+							</div>
+							{ingLoading && (
+								<div className={styles.loadingInline}>Загрузка...</div>
+							)}
 						</div>
 
 						{/* Шаги рецепта */}

@@ -34,12 +34,12 @@ export const AdminIngredients = () => {
 				setLoadingMore(true)
 			}
 			try {
-				const res = await blogAPI.getIngredients({
+				const res = await blogAPI.getIngredientsPaginated({
 					page: reset ? 1 : page,
 					page_size: PAGE_SIZE,
 					search: debounced || undefined,
 				})
-				const list = res.results ?? res
+				const list = res.results
 				if (reset) setIngredients(list)
 				else setIngredients(prev => [...prev, ...list])
 				setHasNext(Boolean(res.next))

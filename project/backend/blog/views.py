@@ -349,16 +349,16 @@ class RecipeStepCreateView(APIView):
 class IngredientViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all().order_by('name')
     serializer_class = IngredientSerializer
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUserOrReadOnly]
+    pagination_class = AdminPageNumberPagination
     filter_backends = [SearchFilter]
     search_fields = ['name']
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all().order_by('name')
     serializer_class = TagSerializer
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminUserOrReadOnly]
+    pagination_class = AdminPageNumberPagination
     filter_backends = [SearchFilter]
     search_fields = ['name']
 
