@@ -1,12 +1,24 @@
 import json
 
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 
 from users.serializers import UserSerializer  # <-- добавили импорт
 
 from .models import Comment, Ingredient, Post, PostIngredient, RecipeStep, Tag
 
 
+class IsAdmin(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and (
+                getattr(user, 'is_staff', False)
+                or getattr(user, 'is_admin', False)
+            )
+        )
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag

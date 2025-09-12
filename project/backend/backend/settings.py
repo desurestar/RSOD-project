@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'core',
     'users',
     'blog',
+    'reports',
 ]
 
 REST_FRAMEWORK = {

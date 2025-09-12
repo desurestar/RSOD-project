@@ -59,6 +59,13 @@ const CreatePostPage = lazy(() =>
 	}))
 )
 
+// Добавлено: страница отчетов
+const AdminReportsPage = lazy(() =>
+	import('./pages/ReportPage/AdminReportsPage').then(module => ({
+		default: module.AdminReportsPage,
+	}))
+)
+
 const NotFoundPage = lazy(() =>
 	import('./pages/NotFoundPage/NotFoundPage').then(module => ({
 		default: module.NotFoundPage,
@@ -135,6 +142,14 @@ function App() {
 							element={
 								<ProtectedRoute>
 									<AdminPanel />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path='/admin/reports'
+							element={
+								<ProtectedRoute>
+									<AdminReportsPage />
 								</ProtectedRoute>
 							}
 						/>
