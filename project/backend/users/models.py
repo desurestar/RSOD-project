@@ -34,6 +34,7 @@ class CustomUser(AbstractUser):
         related_name='subscriptions',
         blank=True
     )
+    email = models.EmailField(_('email address'), unique=True)  # <-- добавлено (переопределили)
 
     role = models.CharField(
         _('role'),
@@ -70,6 +71,11 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.lower()
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _('user')

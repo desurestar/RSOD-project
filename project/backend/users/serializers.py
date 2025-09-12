@@ -24,9 +24,20 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'email': {'required': True}
         }
 
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError('Пользователь с таким именем уже существует.')
+        return value
+
+    def validate_email(self, value):
+        val = value.lower()
+        if User.objects.filter(email__iexact=val).exists():
+            raise serializers.ValidationError('Пользователь с таким email уже существует.')
+        return val
+
     def validate(self, data):
         if len(data['password']) < 8:
-            raise serializers.ValidationError('Password must be at least 8 characters long.')
+            raise serializers.ValidationError({'password': 'Пароль должен быть не короче 8 символов.'})
         return data
 
     def create(self, validated_data):
@@ -90,6 +101,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        if User.objects.filter(email=value).exclude(pk=self.instance.pk).exists():
-            raise serializers.ValidationError('Email already in use.')
-        return value
+        val = value.lower()
+        if User.objects.filter(email__iexact=val).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError('Пользователь с таким email уже существует.')
+        return val

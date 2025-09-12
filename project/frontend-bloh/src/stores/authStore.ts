@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authAPI } from '../api/auth'
 import { Tokens, User } from '../api/types'
+import { translateErrorPayload } from '../utils/errorTranslate'
 import { useBlogStore } from './blogStore'
 
 interface AuthState {
@@ -18,6 +19,7 @@ interface AuthState {
 	updateUser: (userData: Partial<User>) => void
 	isAdmin: () => boolean
 	adjustLikedPostsCount: (delta: number) => void
+	clearError: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -33,18 +35,14 @@ export const useAuthStore = create<AuthState>()(
 				try {
 					const tokens = await authAPI.login({ username, password })
 					get().setTokens(tokens)
-
 					const user = await authAPI.getProfile()
-					set({
-						user,
-						isAuthenticated: true,
-						loading: false,
-					})
-				} catch (error) {
-					set({
-						error: 'Неверный логин или пароль',
-						loading: false,
-					})
+					set({ user, isAuthenticated: true, loading: false })
+				} catch (error: any) {
+					const data = error?.response?.data
+					const errorMessage =
+						translateErrorPayload(data, 'Ошибка авторизации') ||
+						'Ошибка авторизации'
+					set({ error: errorMessage, loading: false })
 					throw error
 				}
 			},
@@ -68,23 +66,13 @@ export const useAuthStore = create<AuthState>()(
 						password,
 					})
 					get().setTokens(tokens)
-
-					set({
-						user,
-						isAuthenticated: true,
-						loading: false,
-					})
+					set({ user, isAuthenticated: true, loading: false })
 				} catch (error: any) {
-					let errorMessage = 'Ошибка регистрации'
-					if (error.response?.data) {
-						errorMessage = Object.entries(error.response.data)
-							.map(([key, msgs]) => `${key}: ${(msgs as string[]).join(', ')}`)
-							.join('\n')
-					}
-					set({
-						error: errorMessage,
-						loading: false,
-					})
+					const data = error?.response?.data
+					const errorMessage =
+						translateErrorPayload(data, 'Ошибка регистрации') ||
+						'Ошибка регистрации'
+					set({ error: errorMessage, loading: false })
 					throw error
 				}
 			},
@@ -146,6 +134,7 @@ export const useAuthStore = create<AuthState>()(
 						  }
 						: state
 				),
+			clearError: () => set({ error: null }),
 		}),
 		{
 			name: 'auth-storage',
